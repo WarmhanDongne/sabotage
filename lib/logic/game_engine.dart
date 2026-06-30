@@ -60,6 +60,85 @@ class GameEngine {
     );
   }
 
+  /// 행동 카드를 대상(플레이어 또는 특정 보드 좌표 등)에게 사용하는 액션을 처리합니다.
+  static GameState playActionCard(
+    GameState currentState,
+    String playerId,
+    Card card,
+    {String? targetPlayerId, int? targetX, int? targetY}
+  ) {
+    if (currentState.currentTurnPlayerId != playerId) {
+      throw Exception('Not your turn');
+    }
+
+    if (card.type != CardType.action) {
+      throw Exception('Not an action card');
+    }
+
+    List<Player> newPlayers = List.from(currentState.players);
+    List<GridNode> newBoard = List.from(currentState.board);
+
+    // 행동 카드 효과 적용
+    switch (card.actionType) {
+      case ActionType.breakPickaxe:
+      case ActionType.breakLantern:
+      case ActionType.breakCart:
+        if (targetPlayerId == null) throw Exception('Target player required');
+        final targetIdx = newPlayers.indexWhere((p) => p.id == targetPlayerId);
+        final tp = newPlayers[targetIdx];
+        if (card.actionType == ActionType.breakPickaxe) newPlayers[targetIdx] = tp.copyWith(isPickaxeBroken: true);
+        if (card.actionType == ActionType.breakLantern) newPlayers[targetIdx] = tp.copyWith(isLanternBroken: true);
+        if (card.actionType == ActionType.breakCart) newPlayers[targetIdx] = tp.copyWith(isCartBroken: true);
+        break;
+        
+      case ActionType.fixPickaxe:
+      case ActionType.fixLantern:
+      case ActionType.fixCart:
+        if (targetPlayerId == null) throw Exception('Target player required');
+        final targetIdx = newPlayers.indexWhere((p) => p.id == targetPlayerId);
+        final tp = newPlayers[targetIdx];
+        if (card.actionType == ActionType.fixPickaxe) newPlayers[targetIdx] = tp.copyWith(isPickaxeBroken: false);
+        if (card.actionType == ActionType.fixLantern) newPlayers[targetIdx] = tp.copyWith(isLanternBroken: false);
+        if (card.actionType == ActionType.fixCart) newPlayers[targetIdx] = tp.copyWith(isCartBroken: false);
+        break;
+
+      case ActionType.rockfall:
+        if (targetX == null || targetY == null) throw Exception('Target coordinates required for rockfall');
+        // 낙석은 굴 카드만 파괴 가능 (시작, 목적지 제외)
+        final nodeIdx = newBoard.indexWhere((n) => n.x == targetX && n.y == targetY && n.card.type == CardType.path);
+        if (nodeIdx == -1) throw Exception('Invalid rockfall target');
+        newBoard.removeAt(nodeIdx);
+        break;
+
+      case ActionType.map:
+        // 지도는 목적지를 엿보는 기능 (개인에게만 보여짐)
+        break;
+
+      default:
+        break;
+    }
+
+    // 카드 소비 후 덱 보충
+    newPlayers = _updatePlayerHand(currentState, playerId, card.id);
+    final newDeck = List<Card>.from(currentState.deck);
+    if (newDeck.isNotEmpty) newDeck.removeLast();
+
+    final nextTurnPlayerId = _getNextTurnPlayerId(newPlayers, playerId);
+
+    return GameState(
+      roomId: currentState.roomId,
+      players: newPlayers,
+      currentTurnPlayerId: nextTurnPlayerId,
+      board: newBoard,
+      deck: newDeck,
+      discardPile: currentState.discardPile,
+      goalCards: currentState.goalCards,
+      currentRound: currentState.currentRound,
+      isGameOver: currentState.isGameOver,
+      goldDistribution: currentState.goldDistribution,
+    );
+  }
+
   /// 카드를 버리는 액션을 처리합니다.
   static GameState discardCard(
     GameState currentState,
