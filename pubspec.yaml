@@ -20,6 +20,8 @@ dependencies:
 
   # Cupertino 아이콘 (iOS 스타일)
   cupertino_icons: ^1.0.6
+  google_fonts: ^6.3.0
+  material_symbols_icons: ^4.2951.0
 
 dev_dependencies:
   flutter_test:
@@ -31,4 +33,16 @@ flutter:
 
   # 이미지 및 룰북 에셋 등록 (필요시 추가 활성화 가능)
   assets:
-    - assets/image/
+    - assets/board_info/001_action/
+    - assets/board_info/002_dwarves/
+    - assets/board_info/003_mixed/
+    - assets/board_info/004_path/
+    - assets/board_info/005_path/
+    - assets/board_info/006_path/
+    - assets/board_info/007_path/
+    - assets/board_info/008_cave_action/
+    - assets/board_info/009_cave_sword/
+    - assets/board_info/010_red/
+    - assets/board_info/011_yellow/
+    - assets/board_info/012_black/
+    - assets/phone_info/

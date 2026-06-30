@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../data/game_state.dart';
+import 'dart:math' as math;
+import '../../main.dart';
 import '../../data/models/card.dart' as game_card;
 import '../../data/models/player.dart';
 import '../../logic/controller_state_machine.dart';
-import '../../logic/validator.dart';
-import '../widgets/board_grid_widget.dart';
-import '../widgets/hand_card_widget.dart';
-import '../widgets/action_target_panel.dart';
-import '../widgets/player_self_status_header.dart';
 
 /// 클라이언트(모바일) 컨트롤러 뷰.
-/// - /player?room={roomId}&id={playerId} 경로로 접속한 기기에서 렌더링됩니다.
-/// - PrivateGameState를 구독하여 본인 역할과 손패를 표시합니다.
-/// - [Idle -> CardSelected -> TargetSelected -> Dispatched] 흐름을 준수합니다.
+/// phone_info/code.html 디자인 기반:
+/// - 부채꼴(Fan) 카드 배치
+/// - 암석 텍스처 배경 + 비네팅
+/// - 골드/브라스 테마
+/// - 하단 Identity Card 슬라이드
 class PlayerView extends StatefulWidget {
   final String roomId;
   final String playerId;
@@ -25,38 +23,37 @@ class PlayerView extends StatefulWidget {
 }
 
 class _PlayerViewState extends State<PlayerView> {
-  // 컨트롤러 상태 머신 (context.md 규칙 2)
   ControllerStateMachine _csm = const ControllerStateMachine();
-
-  // UI Locking: 네트워크 요청 중 전체 조작 비활성화 (context.md 규칙 4)
   bool _isPending = false;
+  int? _selectedCardIndex;
 
-  // BFS 기반 유효/무효 오버레이 좌표 세트 (context.md 규칙 3)
-  Set<String> _validOverlayCoords = {};
-  Set<String> _invalidOverlayCoords = {};
+  // 더미 손패 카드 이미지 경로
+  final List<String> _handCardImages = [
+    'assets/board_info/001_action/001_action_01.png',
+    'assets/board_info/004_path/004_path_01.png',
+    'assets/board_info/001_action/001_action_03.png',
+    'assets/board_info/004_path/004_path_02.png',
+    'assets/board_info/003_mixed/003_mixed_01.png',
+    'assets/board_info/001_action/001_action_05.png',
+  ];
 
-  // 선택한 카드 객체 캐시
-  game_card.Card? _selectedCard;
-
-  // TODO (Phase 3 Firestore 연동): StreamBuilder로 privateState를 받아야 함
-  // 현재는 UI 뼈대 확인을 위한 더미 상태 사용
-  late final Player _dummyMe = Player(
-    id: widget.playerId,
-    name: '테스트 플레이어',
-    isPickaxeBroken: false,
-  );
-  final bool _isMyTurn = true; // 더미 턴 상태
+  // 더미 역할 카드 이미지
+  final String _identityCardImage = 'assets/board_info/002_dwarves/002_dwarves_01.png';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      // UI Locking 오버레이 (context.md 규칙 4): 네트워크 대기 중 전체 터치 차단
       body: AbsorbPointer(
         absorbing: _isPending,
         child: Stack(
           children: [
-            _buildMainLayout(),
+            // 배경 레이어
+            _buildBackground(),
+            // 메인 게임 콘텐츠
+            _buildMainContent(),
+            // Identity Card (하단 중앙, 살짝 삐져나옴)
+            _buildIdentityCard(),
+            // 네트워크 대기 오버레이
             if (_isPending) _buildPendingOverlay(),
           ],
         ),
@@ -64,347 +61,378 @@ class _PlayerViewState extends State<PlayerView> {
     );
   }
 
-  Widget _buildMainLayout() {
-    return SafeArea(
-      child: Column(
-        children: [
-          // 상단: 본인 상태 헤더
-          PlayerSelfStatusHeader(me: _dummyMe, isMyTurn: _isMyTurn),
-
-          // 중간: 미니 보드 뷰 (전체 보드를 축소해서 보여줌)
-          Expanded(
-            flex: 5,
-            child: _buildMiniBoardArea(),
-          ),
-
-          // 행동 카드 타겟 플레이어 선택 패널 (CardSelected + 행동 카드인 경우)
-          if (_csm.currentState == ControllerState.cardSelected &&
-              _selectedCard?.type == game_card.CardType.action)
-            _buildActionTargetPanel(),
-
-          // 하단: 손패 패널
-          Expanded(
-            flex: 3,
-            child: _buildHandPanel(),
-          ),
-
-          // 최종 확인 버튼 (TargetSelected 상태에서만 표시)
-          if (_csm.currentState == ControllerState.targetSelected)
-            _buildConfirmBar(),
-        ],
-      ),
-    );
-  }
-
-  /// 미니 보드 뷰 + InteractiveViewer
-  Widget _buildMiniBoardArea() {
+  /// 암석 텍스처 배경 + 비네팅
+  Widget _buildBackground() {
     return Stack(
       children: [
+        // 기본 배경색
+        Container(color: SabotageColors.surfaceContainerLowest),
+        // 비네팅 효과
         Container(
           decoration: const BoxDecoration(
             gradient: RadialGradient(
-              colors: [Color(0xFF1C1C1C), Color(0xFF0D1117)],
+              center: Alignment.center,
               radius: 1.0,
+              colors: [
+                Colors.transparent,
+                Color(0xE5000000), // rgba(0,0,0,0.9)
+              ],
+              stops: [0.1, 1.0],
             ),
           ),
-        ),
-        Center(
-          child: InteractiveViewer(
-            boundaryMargin: const EdgeInsets.all(100),
-            minScale: 0.3,
-            maxScale: 2.5,
-            child: BoardGridWidget(
-              board: const [],       // TODO: privateState의 보드 데이터
-              goalCards: const [],
-              cardSize: 56.0,
-              // BFS 오버레이 좌표 전달 (context.md 규칙 3)
-              validOverlayCoords: _validOverlayCoords,
-              invalidOverlayCoords: _invalidOverlayCoords,
-              // 굴 카드 선택 후 보드 셀 탭 → TargetSelected 전이
-              onGridTap: (_csm.currentState == ControllerState.cardSelected &&
-                  _selectedCard?.type == game_card.CardType.path)
-                  ? _onGridTapped
-                  : null,
-            ),
-          ),
-        ),
-        // 상태 라벨 (현재 머신 상태 안내 텍스트)
-        Positioned(
-          top: 12,
-          left: 16,
-          child: _buildStateLabel(),
         ),
       ],
     );
   }
 
-  /// 손패 가로 스크롤 패널
-  Widget _buildHandPanel() {
-    // TODO: privateState.me.handCardIds → 실제 Card 객체로 변환
-    // 현재는 더미 카드 3장으로 시각 확인
-    final dummyHand = [
-      const game_card.Card(
-        id: 'c1',
-        type: game_card.CardType.path,
-        hasTop: true,
-        hasBottom: true,
-      ),
-      const game_card.Card(
-        id: 'c2',
-        type: game_card.CardType.action,
-        actionType: game_card.ActionType.breakPickaxe,
-      ),
-      const game_card.Card(
-        id: 'c3',
-        type: game_card.CardType.action,
-        actionType: game_card.ActionType.rockfall,
-      ),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFF161B22),
-        border: Border(top: BorderSide(color: Colors.white12)),
-      ),
+  /// 메인 게임 콘텐츠
+  Widget _buildMainContent() {
+    return SafeArea(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 4),
-            child: Text(
-              '내 손패 (${dummyHand.length}장)',
-              style: const TextStyle(color: Colors.white38, fontSize: 11),
-            ),
-          ),
+          // 상단 상태 바
+          _buildTopStatusBar(),
+          // 안내 텍스트
+          _buildStateLabel(),
+          // 부채꼴 카드 영역 (Expanded)
           Expanded(
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: dummyHand.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final card = dummyHand[i];
-                return HandCardWidget(
-                  card: card,
-                  isSelected: _csm.selectedCardId == card.id,
-                  isMyTurn: _isMyTurn,
-                  onTap: () => _onCardTapped(card),
-                );
-              },
-            ),
+            child: _buildFanCards(),
           ),
-          // 카드 선택 중일 때 취소 버튼
-          if (_csm.currentState != ControllerState.idle)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Center(
-                child: TextButton.icon(
-                  onPressed: _cancelSelection,
-                  icon: const Icon(Icons.undo, size: 14, color: Colors.white38),
-                  label: const Text(
-                    '선택 취소',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                ),
-              ),
-            ),
+          // 확정 버튼 (TargetSelected 상태에서만 표시)
+          if (_csm.currentState == ControllerState.targetSelected)
+            _buildConfirmBar(),
+          // Table Edge 장식
+          _buildTableEdge(),
         ],
       ),
     );
   }
 
-  /// 행동 카드 대상 플레이어 선택 패널
-  Widget _buildActionTargetPanel() {
-    // TODO: privateState의 다른 플레이어 목록으로 교체
-    final dummyOthers = [
-      const Player(id: 'p2', name: '플레이어2'),
-      const Player(id: 'p3', name: '플레이어3', isPickaxeBroken: true),
-    ];
-
-    final isRepair = _selectedCard?.actionType == game_card.ActionType.fixPickaxe ||
-        _selectedCard?.actionType == game_card.ActionType.fixLantern ||
-        _selectedCard?.actionType == game_card.ActionType.fixCart;
-
-    return ActionTargetPanel(
-      otherPlayers: dummyOthers,
-      selectedTargetPlayerId: _csm.target is String ? _csm.target as String : null,
-      isRepairCard: isRepair,
-      onSelectPlayer: _onTargetPlayerSelected,
-      onCancel: _cancelSelection,
-    );
-  }
-
-  /// 최종 확인 버튼 바
-  Widget _buildConfirmBar() {
+  /// 상단 상태 바
+  Widget _buildTopStatusBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: const Color(0xFF0D1117),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2D6A4F),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 6,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // 방 정보
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: SabotageColors.panelCharcoal,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: SabotageColors.borderBrass),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.meeting_room_outlined, color: SabotageColors.muted, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  widget.roomId.toUpperCase(),
+                  style: const TextStyle(
+                    color: SabotageColors.onSurfaceVariant,
+                    fontSize: 12,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
+              ],
+            ),
           ),
-          onPressed: _dispatchAction,
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_circle_outline, size: 20),
-              SizedBox(width: 8),
-              Text('카드 사용 확정', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
+          // 내 턴 배지
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: SabotageColors.secondaryContainer.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: SabotageColors.primaryContainer.withOpacity(0.4)),
+              boxShadow: [
+                BoxShadow(
+                  color: SabotageColors.goldGlow,
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+            child: const Text(
+              'YOUR TURN',
+              style: TextStyle(
+                color: SabotageColors.primaryContainer,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+                fontFamily: 'JetBrains Mono',
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  /// 현재 상태 머신 상태를 안내하는 레이블
+  /// 상태 안내 라벨
   Widget _buildStateLabel() {
     final (text, color) = switch (_csm.currentState) {
-      ControllerState.idle => ('카드를 선택하세요', Colors.white38),
-      ControllerState.cardSelected => (
-          _selectedCard?.type == game_card.CardType.path
-              ? '보드에서 놓을 위치를 탭하세요'
-              : '대상을 선택하세요',
-          Colors.amberAccent
-        ),
-      ControllerState.targetSelected => ('확정 버튼을 눌러 카드를 사용하세요', Colors.greenAccent),
-      ControllerState.dispatched => ('처리 중...', Colors.white54),
+      ControllerState.idle => ('카드를 선택하세요', SabotageColors.muted),
+      ControllerState.cardSelected => ('보드에서 놓을 위치를 탭하세요', SabotageColors.primaryContainer),
+      ControllerState.targetSelected => ('확정 버튼을 눌러 사용하세요', SabotageColors.surfaceTint),
+      ControllerState.dispatched => ('처리 중...', SabotageColors.muted),
     };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.black54,
-        borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'JetBrains Mono',
+          letterSpacing: 0.5,
+        ),
       ),
-      child: Text(text, style: TextStyle(color: color, fontSize: 11)),
     );
   }
 
-  /// 네트워크 대기 중 화면 전체 오버레이
+  /// 부채꼴(Fan) 카드 배치
+  Widget _buildFanCards() {
+    final cardCount = _handCardImages.length;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final centerX = constraints.maxWidth / 2;
+        final centerY = constraints.maxHeight * 0.85; // 부채꼴 회전 중심점
+
+        return Stack(
+          children: List.generate(cardCount, (index) {
+            // 카드별 각도 계산
+            final totalSpread = 28.0; // 전체 펼침 각도
+            final angleStep = totalSpread / (cardCount - 1);
+            final angle = -totalSpread / 2 + angleStep * index;
+            final radians = angle * math.pi / 180;
+
+            // 선택된 카드는 위로 솟아오름
+            final isSelected = _selectedCardIndex == index;
+            final yOffset = isSelected ? -80.0 : 0.0;
+
+            // 카드 크기
+            final cardWidth = constraints.maxWidth * 0.22;
+            final cardHeight = cardWidth * 1.5; // 2:3 비율
+
+            return Positioned(
+              left: centerX - cardWidth / 2,
+              bottom: 20,
+              child: Transform(
+                alignment: Alignment.bottomCenter,
+                transform: Matrix4.identity()
+                  ..translate(0.0, yOffset)
+                  ..rotateZ(radians),
+                child: GestureDetector(
+                  onTap: () => _onCardTapped(index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOutBack,
+                    width: cardWidth,
+                    height: cardHeight,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? SabotageColors.primaryContainer
+                            : SabotageColors.borderBrass,
+                        width: isSelected ? 2 : 1,
+                      ),
+                      boxShadow: [
+                        if (isSelected)
+                          BoxShadow(
+                            color: SabotageColors.primaryContainer.withOpacity(0.3),
+                            blurRadius: 40,
+                            spreadRadius: 4,
+                          )
+                        else
+                          const BoxShadow(
+                            color: Color(0xB3000000), // 70% 검정
+                            blurRadius: 35,
+                            offset: Offset(0, 15),
+                          ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(11),
+                      child: Image.asset(
+                        _handCardImages[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: SabotageColors.surfaceContainer,
+                          child: const Center(
+                            child: Icon(Icons.style, color: SabotageColors.muted, size: 32),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+
+  /// Table Edge 장식 (code.html 기준)
+  Widget _buildTableEdge() {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            SabotageColors.borderBrass.withOpacity(0.15),
+            Colors.transparent,
+          ],
+        ),
+        border: Border(
+          top: BorderSide(color: SabotageColors.outline.withOpacity(0.2)),
+        ),
+      ),
+    );
+  }
+
+  /// Identity Card (하단 중앙, 역할 카드)
+  Widget _buildIdentityCard() {
+    return Positioned(
+      bottom: -60,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: GestureDetector(
+          onVerticalDragUpdate: (_) {},
+          child: Container(
+            width: 96,
+            height: 132,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: SabotageColors.outlineVariant),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.8),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(11),
+              child: Image.asset(
+                _identityCardImage,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: SabotageColors.surfaceContainer,
+                  child: const Icon(Icons.person, color: SabotageColors.muted),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 최종 확인 버튼
+  Widget _buildConfirmBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Container(
+        width: double.infinity,
+        height: 50,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: SabotageColors.goldGlow,
+              blurRadius: 24,
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: SabotageColors.primaryContainer,
+            foregroundColor: SabotageColors.onPrimary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 0,
+          ),
+          onPressed: _dispatchAction,
+          child: const Text(
+            '카드 사용 확정',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 네트워크 대기 오버레이
   Widget _buildPendingOverlay() {
     return Container(
       color: Colors.black54,
-      child: const Center(
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Color(0xFFD4A853)),
-            SizedBox(height: 16),
-            Text('처리 중...', style: TextStyle(color: Colors.white70)),
+            const CircularProgressIndicator(color: SabotageColors.primaryContainer),
+            const SizedBox(height: 16),
+            Text(
+              '처리 중...',
+              style: TextStyle(
+                color: SabotageColors.onSurface,
+                fontFamily: 'JetBrains Mono',
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ──────────────────────────────────────────────
-  // 이벤트 핸들러
-  // ──────────────────────────────────────────────
+  // ──── Event Handlers ────
 
-  /// 손패 카드 탭: Idle → CardSelected 전이
-  void _onCardTapped(game_card.Card card) {
+  void _onCardTapped(int index) {
     HapticFeedback.selectionClick();
     setState(() {
-      _csm = _csm.selectCard(card.id);
-      _selectedCard = card;
-      _clearOverlays();
-
-      // 굴 카드인 경우 즉시 BFS로 유효한 셀 계산하여 오버레이 표시
-      if (card.type == game_card.CardType.path) {
-        _computeValidCells(card);
+      if (_selectedCardIndex == index) {
+        // 이미 선택된 카드 다시 탭 → 선택 해제
+        _selectedCardIndex = null;
+        _csm = _csm.cancelSelection();
+      } else {
+        _selectedCardIndex = index;
+        _csm = _csm.selectCard('card_$index');
       }
     });
   }
 
-  /// 보드 셀 탭: CardSelected → TargetSelected 전이 (굴 카드)
-  void _onGridTapped(int x, int y) {
-    if (_selectedCard == null) return;
-    HapticFeedback.lightImpact();
-    setState(() {
-      _csm = _csm.selectTargetGrid(x, y);
-      // 선택된 셀을 강조
-      _validOverlayCoords = {'$x,$y'};
-      _invalidOverlayCoords = {};
-    });
-  }
-
-  /// 행동 카드 타겟 플레이어 선택: CardSelected → TargetSelected 전이
-  void _onTargetPlayerSelected(String targetPlayerId) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      _csm = _csm.selectTargetPlayer(targetPlayerId);
-    });
-  }
-
-  /// 최종 확인: TargetSelected → Dispatched, Firestore Transaction 실행
   Future<void> _dispatchAction() async {
     if (_csm.currentState != ControllerState.targetSelected) return;
-
     setState(() {
-      _isPending = true; // UI Locking ON
+      _isPending = true;
       _csm = _csm.dispatchAction();
     });
 
     try {
-      // TODO (Firestore 연동): Firestore Transaction으로 GameEngine의 결과 상태를 기록
-      // await FirestoreRepository.applyAction(
-      //   roomId: widget.roomId,
-      //   playerId: widget.playerId,
-      //   cardId: _csm.selectedCardId!,
-      //   target: _csm.target,
-      // );
-      await Future.delayed(const Duration(milliseconds: 800)); // 더미 네트워크 딜레이
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      await Future.delayed(const Duration(milliseconds: 800)); // 더미 딜레이
     } finally {
       if (mounted) {
         setState(() {
-          _isPending = false; // UI Locking OFF
-          _csm = const ControllerStateMachine(); // Idle로 리셋
-          _selectedCard = null;
-          _clearOverlays();
+          _isPending = false;
+          _csm = const ControllerStateMachine();
+          _selectedCardIndex = null;
         });
       }
     }
-  }
-
-  /// 선택 취소: 어느 상태에서든 Idle로 복귀
-  void _cancelSelection() {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _csm = _csm.cancelSelection();
-      _selectedCard = null;
-      _clearOverlays();
-    });
-  }
-
-  /// 선택된 굴 카드에 대해 보드 전체를 스캔하여
-  /// 유효한 위치(초록)와 무효한 위치(빨강) 오버레이 좌표를 계산합니다.
-  void _computeValidCells(game_card.Card card) {
-    // TODO: 실제 privateState.board를 사용하여 BFS 적용
-    // Validator.canPlaceCard(board, card, x, y)를 각 빈 셀에 대해 호출
-    // 현재는 더미로 비워둠
-    _validOverlayCoords = {};
-    _invalidOverlayCoords = {};
-  }
-
-  void _clearOverlays() {
-    _validOverlayCoords = {};
-    _invalidOverlayCoords = {};
   }
 }

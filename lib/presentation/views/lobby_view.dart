@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import '../../main.dart';
 
 /// 방 생성 및 입장을 담당하는 로비 화면.
-/// - 호스트: 방 생성 버튼 → Firestore에 새 방 문서 생성 → /table?room={roomId} 이동
-/// - 클라이언트: 방 코드 입력 → 닉네임 입력 → /player?room={roomId}&id={playerId} 이동
+/// DESIGN.md 기준: 골드/브라스 광산 테마
 class LobbyView extends StatefulWidget {
   const LobbyView({super.key});
 
@@ -25,38 +26,55 @@ class _LobbyViewState extends State<LobbyView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 40),
-                _buildRoleToggle(),
-                const SizedBox(height: 28),
-                if (!_isHost) ...[
-                  _buildTextField(
-                    controller: _roomCodeController,
-                    label: '방 코드 입력',
-                    icon: Icons.meeting_room_outlined,
-                  ),
-                  const SizedBox(height: 16),
+      body: Stack(
+        children: [
+          // 비네팅(Vignette) 효과 배경
+          Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 1.0,
+                colors: [
+                  Color(0xFF1B1B1F),   // surface-container-low (중심)
+                  Color(0xFF0D0E11),   // surface-container-lowest (외곽)
                 ],
-                _buildTextField(
-                  controller: _nicknameController,
-                  label: '닉네임 입력',
-                  icon: Icons.person_outline,
-                ),
-                const SizedBox(height: 32),
-                _buildActionButton(),
-              ],
+              ),
             ),
           ),
-        ),
+          // 콘텐츠
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 48),
+                    _buildRoleToggle(),
+                    const SizedBox(height: 28),
+                    if (!_isHost) ...[
+                      _buildTextField(
+                        controller: _roomCodeController,
+                        label: '방 코드 입력',
+                        icon: Symbols.meeting_room,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildTextField(
+                      controller: _nicknameController,
+                      label: '닉네임 입력',
+                      icon: Symbols.person,
+                    ),
+                    const SizedBox(height: 36),
+                    _buildActionButton(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -64,27 +82,50 @@ class _LobbyViewState extends State<LobbyView> {
   Widget _buildHeader() {
     return Column(
       children: [
-        const Icon(Icons.casino, color: Color(0xFFD4A853), size: 64),
-        const SizedBox(height: 16),
+        // 골드 글로우 아이콘
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: SabotageColors.primaryContainer.withOpacity(0.25),
+                blurRadius: 40,
+                spreadRadius: 8,
+              ),
+            ],
+          ),
+          child: const Icon(Symbols.diamond, color: SabotageColors.primaryContainer, size: 56),
+        ),
+        const SizedBox(height: 20),
+        // 제목
         Text(
-          'SABOTAGE',
+          'SABOTEUR',
           style: TextStyle(
-            color: const Color(0xFFD4A853),
-            fontSize: 36,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 6,
+            color: SabotageColors.primary,
+            fontSize: 40,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 8,
+            fontFamily: 'Literata',
             shadows: [
               Shadow(
-                color: const Color(0xFFD4A853).withOpacity(0.5),
-                blurRadius: 20,
+                color: SabotageColors.primaryContainer.withOpacity(0.35),
+                blurRadius: 32,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          '광부와 방해꾼의 전쟁',
-          style: TextStyle(color: Colors.white38, fontSize: 14, letterSpacing: 1.5),
+        const SizedBox(height: 6),
+        Text(
+          'UNDER THE SURFACE',
+          style: TextStyle(
+            color: SabotageColors.muted,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 3,
+            fontFamily: 'JetBrains Mono',
+          ),
         ),
       ],
     );
@@ -93,14 +134,14 @@ class _LobbyViewState extends State<LobbyView> {
   Widget _buildRoleToggle() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
+        color: SabotageColors.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: SabotageColors.outlineVariant),
       ),
       child: Row(
         children: [
-          Expanded(child: _roleButton('호스트 (태블릿)', true, Icons.desktop_mac)),
-          Expanded(child: _roleButton('플레이어 (모바일)', false, Icons.smartphone)),
+          Expanded(child: _roleButton('호스트 (태블릿)', true, Symbols.desktop_mac)),
+          Expanded(child: _roleButton('플레이어 (모바일)', false, Symbols.smartphone)),
         ],
       ),
     );
@@ -111,22 +152,31 @@ class _LobbyViewState extends State<LobbyView> {
     return GestureDetector(
       onTap: () => setState(() => _isHost = isHostOption),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        duration: const Duration(milliseconds: 240),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2D6A4F) : Colors.transparent,
+          color: isSelected
+              ? SabotageColors.secondaryContainer.withOpacity(0.18)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
+          border: isSelected
+              ? Border.all(color: SabotageColors.secondary.withOpacity(0.4))
+              : Border.all(color: Colors.transparent),
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? Colors.greenAccent : Colors.white38, size: 22),
-            const SizedBox(height: 4),
+            Icon(
+              icon,
+              color: isSelected ? SabotageColors.primaryContainer : SabotageColors.muted,
+              size: 26,
+            ),
+            const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white38,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? SabotageColors.onSurface : SabotageColors.muted,
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],
@@ -142,55 +192,63 @@ class _LobbyViewState extends State<LobbyView> {
   }) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: SabotageColors.onSurface),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
-        prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+        labelStyle: const TextStyle(color: SabotageColors.muted),
+        prefixIcon: Icon(icon, color: SabotageColors.muted, size: 20),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white24),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: SabotageColors.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFD4A853), width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: SabotageColors.primaryContainer, width: 1.5),
         ),
         filled: true,
-        fillColor: const Color(0xFF161B22),
+        fillColor: SabotageColors.surfaceContainerLowest,
       ),
     );
   }
 
   Widget _buildActionButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 52,
+      height: 54,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: SabotageColors.goldGlow,
+            blurRadius: 32,
+          ),
+        ],
+      ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD4A853),
-          foregroundColor: Colors.black87,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 4,
+          backgroundColor: SabotageColors.primaryContainer,
+          foregroundColor: SabotageColors.onPrimary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+          elevation: 0,
         ),
         onPressed: _handleAction,
         child: Text(
           _isHost ? '방 만들기' : '입장하기',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5),
         ),
       ),
     );
   }
 
   void _handleAction() {
-    // TODO (Phase 3 Firestore 연동): 방 생성 또는 입장 Firestore 액션 호출 후 Navigator.pushNamed 처리
+    // Firestore 연동 전 임시 화면 전환 테스트용 코드
     if (_isHost) {
-      // Firestore에 새 방 문서 생성 → 생성된 roomId로 이동
-      // Navigator.pushNamed(context, '/table?room=$newRoomId');
+      Navigator.pushNamed(context, '/table?room=ROOM123');
     } else {
       final roomCode = _roomCodeController.text.trim();
       final nickname = _nicknameController.text.trim();
       if (roomCode.isEmpty || nickname.isEmpty) return;
-      // Navigator.pushNamed(context, '/player?room=$roomCode&id=$newPlayerId');
+      Navigator.pushNamed(context, '/player?room=$roomCode&id=P1');
     }
   }
 }
