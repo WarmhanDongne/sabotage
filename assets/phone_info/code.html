@@ -1,0 +1,344 @@
+<!DOCTYPE html><html class="dark" lang="ko" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SABOTEUR - Player Hand</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&amp;family=Work+Sans:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed": "#221b00",
+                    "on-error": "#690005",
+                    "border-brass": "#4d4732",
+                    "surface-container": "#1f1f23",
+                    "primary-container": "#ffd700",
+                    "outline": "#999077",
+                    "on-tertiary-fixed-variant": "#464747",
+                    "error-container": "#93000a",
+                    "surface-container-lowest": "#0d0e11",
+                    "surface-container-highest": "#343538",
+                    "surface-bright": "#38393c",
+                    "secondary-fixed-dim": "#ffb68c",
+                    "secondary": "#ffb68c",
+                    "on-secondary": "#532200",
+                    "slot-overlay": "rgba(0, 0, 0, 0.05)",
+                    "on-secondary-fixed": "#321200",
+                    "surface-container-high": "#292a2d",
+                    "on-primary": "#3a3000",
+                    "on-secondary-container": "#fc9e65",
+                    "on-background": "#e3e2e6",
+                    "primary-fixed": "#ffe16d",
+                    "inverse-surface": "#e3e2e6",
+                    "surface-tint": "#e9c400",
+                    "on-surface-variant": "#d0c6ab",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "inverse-on-surface": "#2f3034",
+                    "surface-variant": "#343538",
+                    "surface": "#121316",
+                    "tertiary-fixed-dim": "#c7c6c6",
+                    "secondary-fixed": "#ffdbc9",
+                    "tertiary-fixed": "#e3e2e2",
+                    "inverse-primary": "#705d00",
+                    "surface-container-low": "#1b1b1f",
+                    "secondary-container": "#753401",
+                    "on-tertiary": "#2f3131",
+                    "gold-glow": "rgba(117, 52, 1, 0.4)",
+                    "on-primary-container": "#705e00",
+                    "on-primary-fixed-variant": "#544600",
+                    "error": "#ffb4ab",
+                    "tertiary-container": "#dbdada",
+                    "panel-charcoal": "#292a2d",
+                    "background": "#121316",
+                    "primary": "#fff6df",
+                    "outline-variant": "#4d4732",
+                    "on-secondary-fixed-variant": "#753401",
+                    "on-tertiary-container": "#5e5f5f",
+                    "on-error-container": "#ffdad6",
+                    "tertiary": "#f7f6f6",
+                    "primary-fixed-dim": "#e9c400",
+                    "surface-dim": "#121316"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "sidebar-width": "384px",
+                    "unit": "4px",
+                    "card-gap": "12px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "headline-sm": ["Literata"],
+                    "headline-lg": ["Literata"],
+                    "label-caps": ["JetBrains Mono"],
+                    "headline-md": ["Literata"],
+                    "body-md": ["Work Sans"],
+                    "body-lg": ["Work Sans"],
+                    "badge-label": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-sm": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                    "headline-md": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "badge-label": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0d0e11;
+            color: #e3e2e6;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .rock-bg {
+            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA45MXEnWyA-nhn9FhbkQHazToWKQpSCIDCJH-V43BNntFo-nAVVTrzHMF9qaEdsrUEjPL6Wd9t36_O4yTgb88eBU_K5X0svqSLGsGfX4pxc2QnaYdqUW_oYresiowdFsJUXYWSbhpTzu7dsOBdP-qWYa6FEVu31GhlCygap1_LlM6hipNwA2-M7jOUP0_5ot-xgHYtw3Q1dvHqHS4QX_7r2JC-l_94On9LJ3f0FVY5hlDz2IkIW1orn1tEMf7qMbW1F8XCqX-0QgE');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.35; /* Slightly dimmed to keep UI legible */
+            mix-blend-mode: overlay;
+        }
+
+        .vignette {
+            background: radial-gradient(circle, transparent 10%, rgba(0,0,0,0.9) 100%);
+        }
+
+        .card-container {
+            perspective: 1500px;
+        }
+
+        .fan-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: bottom center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+            border: 1px solid #4d4732;
+        }
+
+        .fan-card:hover {
+            transform: translateY(-100px) scale(1.18) rotate(0deg) !important;
+            z-index: 100 !important;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+        }
+
+        .table-edge {
+            background: linear-gradient(to top, rgba(77, 71, 50, 0.15) 0%, transparent 100%);
+            border-top: 1px solid rgba(153, 144, 119, 0.2);
+        }
+
+        .brass-shadow {
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .active-nav .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* Identity Slide Interaction */
+        .identity-trigger {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 40px;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+        }
+
+        .identity-card-wrapper {
+            position: fixed;
+            bottom: -160px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            z-index: 50;
+        }
+
+        .identity-trigger:hover + .identity-card-wrapper,
+        .identity-card-wrapper:hover {
+            bottom: 40px; /* Moved up to clear table edge and look centered relative to play area */
+            transform: translateX(-50%) scale(1.2);
+        }
+    </style>
+<style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(34.85194157426338px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(20.998001076914832px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(-31.062242089841632px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(3.5984989702660073px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(-32.61831597317385px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(3.9213597945669676px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(-18.799511058243574px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(-0.11385535995677287px); opacity: 0; }
+            }
+        </style><style>
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(-25.5746644220379px); opacity: 0; }
+            }
+        </style></head>
+<body class="font-body-md relative select-none" style="width: 884px; height: 390px; margin: 0px auto; position: relative; overflow: hidden; background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuDwpkyDXqXoq4ZXGdDLlf4oN5GBpIfWLxv-0AkdUo9sXa_JP1fSeYHT_0sPbTiSQi-2XDctMOmkUDV-G3gERcTPHO83iEBvxXPOF02KQqXDmpFTViJjuaey-Lp-vv8sUED6eW4CzhYghgsPoZCMNrw5jXzbvbX8x8V57Iwvd6ZBf5532T34WLYvwV_WBdEsmN9RtqgvIvTJXgqT7e2qy3AGX559Fdyn_MiJYd86DXxDBObLWDhy-Bum6tsTunNbAgnSqqUZV_waeoo&quot;); background-size: cover; background-position: center center; background-color: transparent;">
+<!-- Background Layers -->
+<!-- Top Bar -->
+<!-- Main Game Canvas -->
+<main class="relative z-30 w-full h-full flex flex-col justify-end pb-4">
+<!-- Identity Card (Hidden at bottom center initially) -->
+<div class="identity-trigger">
+<div class="w-16 h-2 bg-primary/20 rounded-t-full"></div>
+</div>
+<div class="identity-card-wrapper group">
+<div class="w-32 h-44 border-outline-variant rounded-lg overflow-hidden brass-shadow cursor-pointer flex flex-col items-center justify-center relative">
+<img alt="Identity Card" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKiS28YUgu8WRKJolp7Yvnf2Z3kudLvp6zx-K1BvW9RK48PJKzEeIyv0dfbpuLGIHJx8GuwXUhXYVFWjP_ZsEKd92L7h3hx6riMeY6AvnPilwgm2dz9Cln3jEN52MiSWiUMTiLOphVILJsforAyysjZkrfkD2uZz_fYVBj5OZLmvKWhRjhPT1MpPuVI-KJjMnVBaESBlzUL8wkqCvmq8bdnWp6y0e0eKaE95gKO0rR-Q7_7KG22Xi25PEjsMRnQaib2lPqC-rqHUY">
+</div>
+</div>
+<!-- Central Player Hand (Scaled for landscape) -->
+<div class="w-full flex justify-center items-end card-container px-margin-desktop h-64 mb-12">
+<div class="relative flex justify-center w-full max-w-6xl h-full"><!-- Card 1 -->
+<div class="fan-card absolute bottom-0 w-32 aspect-[2/3] rounded-xl overflow-hidden bg-surface-container z-10 border-brass" style="transform: rotate(-12deg) translateX(-250px) translateY(-20px);">
+<img alt="Action Card 1" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBDTb51n3h8m_DlyGBLUeFrLEel3Ok-CCYFAXjfz3KGq97BJCUf83EXg4jDswtESSVUdxlL-UM6UrkqTg_sjLyIghrP51_IXnXLP79EGqiNpKG_XEdWvuJ87mQeY3dHHIa54EZxhSCvvgkZ4Fae4JyaNvpV-SQWJTiWROjdvhW5Nvvphdz07T63F_OYk119t49_hwi_z9TXIokHlNwkU6oWkg_gQwmEuXLsGqRi9gxfesokY-I8zRsoLCFEwsqRY5RKORFL3ZLz7o">
+</div>
+<!-- Card 2 -->
+<div class="fan-card absolute bottom-0 w-32 aspect-[2/3] rounded-xl overflow-hidden bg-surface-container z-20 border-brass" style="transform: rotate(-7deg) translateX(-150px) translateY(-45px);">
+<img alt="Action Card 2" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7oTBlFz2qCv79M-w9FTu7FuceVYkLnDOY6Clrmmcfm0VijYJMysANQpHQ4QBCtZIExcmI4GetgoSRCBWTBOIvwOtRcE8IPY050vDrI5tUMwHKGvTjU33INurYCkM7xDZ1JGhFGbH4TCpFhXERZfwAH7gB24SFvnXX6u2ep8kD7XIhqvxqyKiDRVxionzK2o-7ht48IPGaXEYTv6bTSxkyP6R4cs6koppcDKBf5SxiPcI3V-pfqGpGDjss04KGBIVWxfML0vT0oMU">
+</div>
+<!-- Card 3 -->
+<div class="fan-card absolute bottom-0 w-32 aspect-[2/3] rounded-xl overflow-hidden bg-surface-container z-30 border-brass" style="transform: rotate(-2deg) translateX(-50px) translateY(-55px);">
+<img alt="Action Card 3" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsfzDKK-H-TVF6CcM-yoF3m9zLKSuiln-Kc3eBcy-SZ3Ib40T3VTHQ6kYC1OSz9CTuwBJh8bQd3vCcoVlvNmoos6FDdPwOFz0Gw8LFo1nDk1RSRt1JTlba0loWlebBZetwjcYVQPhOJb8ctOYIfHO6s4TOWgHb0CM2bREr4ycL0XahcgFWDWgqjgaEqeBC5auJVO2LRx9oLiC4rjCD1CLtHaE6IMBbWMgIT_YruUw2z6IZxBR1BBT8Q_1rbbCpZeCz_ZVDZmmUIXY">
+</div>
+<!-- Card 4 -->
+<div class="fan-card absolute bottom-0 w-32 aspect-[2/3] rounded-xl overflow-hidden bg-surface-container z-30 border-brass" style="transform: rotate(2deg) translateX(50px) translateY(-55px);">
+<img alt="Action Card 4" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBDTb51n3h8m_DlyGBLUeFrLEel3Ok-CCYFAXjfz3KGq97BJCUf83EXg4jDswtESSVUdxlL-UM6UrkqTg_sjLyIghrP51_IXnXLP79EGqiNpKG_XEdWvuJ87mQeY3dHHIa54EZxhSCvvgkZ4Fae4JyaNvpV-SQWJTiWROjdvhW5Nvvphdz07T63F_OYk119t49_hwi_z9TXIokHlNwkU6oWkg_gQwmEuXLsGqRi9gxfesokY-I8zRsoLCFEwsqRY5RKORFL3ZLz7o">
+</div>
+<!-- Card 5 -->
+<div class="fan-card absolute bottom-0 w-32 aspect-[2/3] rounded-xl overflow-hidden bg-surface-container z-20 border-brass" style="transform: rotate(7deg) translateX(150px) translateY(-45px);">
+<img alt="Action Card 5" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7oTBlFz2qCv79M-w9FTu7FuceVYkLnDOY6Clrmmcfm0VijYJMysANQpHQ4QBCtZIExcmI4GetgoSRCBWTBOIvwOtRcE8IPY050vDrI5tUMwHKGvTjU33INurYCkM7xDZ1JGhFGbH4TCpFhXERZfwAH7gB24SFvnXX6u2ep8kD7XIhqvxqyKiDRVxionzK2o-7ht48IPGaXEYTv6bTSxkyP6R4cs6koppcDKBf5SxiPcI3V-pfqGpGDjss04KGBIVWxfML0vT0oMU">
+</div>
+<!-- Card 6 -->
+<div class="fan-card absolute bottom-0 w-32 aspect-[2/3] rounded-xl overflow-hidden bg-surface-container z-10 border-brass" style="transform: rotate(12deg) translateX(250px) translateY(-20px);">
+<img alt="Action Card 6" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBDTb51n3h8m_DlyGBLUeFrLEel3Ok-CCYFAXjfz3KGq97BJCUf83EXg4jDswtESSVUdxlL-UM6UrkqTg_sjLyIghrP51_IXnXLP79EGqiNpKG_XEdWvuJ87mQeY3dHHIa54EZxhSCvvgkZ4Fae4JyaNvpV-SQWJTiWROjdvhW5Nvvphdz07T63F_OYk119t49_hwi_z9TXIokHlNwkU6oWkg_gQwmEuXLsGqRi9gxfesokY-I8zRsoLCFEwsqRY5RKORFL3ZLz7o">
+</div></div>
+</div>
+<!-- Table Edge Visual -->
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[140%] h-64 rounded-[100%] table-edge z-0 pointer-events-none"></div>
+</main>
+<!-- Bottom Navigation Bar (Secondary to gameplay) -->
+<!-- Atmospheric Layer -->
+<div class="fixed inset-0 z-40 pointer-events-none overflow-hidden opacity-20" id="particles"><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.40037px; height: 1.40037px; left: 70.3798%; top: 32.7196%; animation: 19.4408s linear -11.0197s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.08201px; height: 2.08201px; left: 98.0635%; top: 71.9682%; animation: 28.162s linear -11.028s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.72255px; height: 2.72255px; left: 69.3383%; top: 73.7683%; animation: 19.3055s linear -29.256s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.53245px; height: 1.53245px; left: 61.057%; top: 50.0198%; animation: 19.5252s linear -28.6601s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.38387px; height: 2.38387px; left: 93.7337%; top: 60.9924%; animation: 18.0589s linear -8.04045s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.97526px; height: 1.97526px; left: 99.2822%; top: 35.9985%; animation: 30.4433s linear -23.2636s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.58988px; height: 1.58988px; left: 5.68559%; top: 19.7233%; animation: 15.8951s linear -11.3675s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.35889px; height: 2.35889px; left: 78.396%; top: 62.2829%; animation: 19.3081s linear -11.6109s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.86002px; height: 1.86002px; left: 59.0491%; top: 42.1588%; animation: 26.983s linear -23.8086s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.79687px; height: 1.79687px; left: 24.1327%; top: 91.2387%; animation: 31.1686s linear -13.8192s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.99049px; height: 2.99049px; left: 47.6105%; top: 52.7344%; animation: 24.3693s linear -13.435s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.76048px; height: 2.76048px; left: 2.35%; top: 18.4505%; animation: 30.4661s linear -18.8768s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.95836px; height: 2.95836px; left: 52.26%; top: 77.5907%; animation: 28.6488s linear -8.86253s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.47451px; height: 2.47451px; left: 12.7295%; top: 36.2542%; animation: 31.5743s linear -22.8097s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.14822px; height: 2.14822px; left: 42.9103%; top: 3.18819%; animation: 34.9727s linear -21.07s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.602px; height: 1.602px; left: 22.1571%; top: 91.3141%; animation: 16.9602s linear -29.8287s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.52759px; height: 2.52759px; left: 46.8745%; top: 75.3394%; animation: 31.8031s linear -13.7334s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.26938px; height: 1.26938px; left: 49.5108%; top: 1.06376%; animation: 17.955s linear -13.673s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.85812px; height: 1.85812px; left: 10.8628%; top: 5.47951%; animation: 23.1526s linear -14.7976s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.12148px; height: 1.12148px; left: 21.878%; top: 56.3444%; animation: 20.8912s linear -11.879s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.93269px; height: 1.93269px; left: 50.7583%; top: 99.0164%; animation: 32.2558s linear -4.27353s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 2.89514px; height: 2.89514px; left: 98.9195%; top: 63.7787%; animation: 24.9691s linear -28.6809s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.1962px; height: 1.1962px; left: 70.9931%; top: 40.6782%; animation: 32.7919s linear -21.6233s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.28513px; height: 1.28513px; left: 58.353%; top: 39.1268%; animation: 16.3656s linear -21.924s infinite normal none running float;"></div><div class="absolute bg-primary-container/30 rounded-full blur-[1px]" style="width: 1.38562px; height: 1.38562px; left: 19.1915%; top: 6.23167%; animation: 28.2237s linear -19.7215s infinite normal none running float;"></div></div>
+<script>
+        // Atmospheric dust particles
+        const particleContainer = document.getElementById('particles');
+        const particleCount = 25;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'absolute bg-primary-container/30 rounded-full blur-[1px]';
+            const size = Math.random() * 2 + 1;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            
+            const duration = Math.random() * 20 + 15;
+            const delay = Math.random() * -30;
+            
+            particle.style.animation = `float ${duration}s linear infinite ${delay}s`;
+            particleContainer.appendChild(particle);
+        }
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes float {
+                0% { transform: translateY(0) translateX(0) opacity: 0; }
+                20% { opacity: 0.8; }
+                80% { opacity: 0.8; }
+                100% { transform: translateY(-110vh) translateX(${Math.random() * 80 - 40}px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Card interaction logic
+        document.querySelectorAll('.fan-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const currentTransform = card.style.transform;
+                card.style.transition = 'all 0.25s ease-out';
+                card.style.transform = currentTransform.replace(/translateY\(.*?\)/, 'translateY(-160px)') + ' scale(1.1)';
+                card.style.zIndex = '100';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                }, 250);
+            });
+        });
+    </script>
+
+
+</body></html>
