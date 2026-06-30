@@ -1,10 +1,55 @@
+# -------------------------------------------------------------------------
 # 이미지 폴더 제외
+# -------------------------------------------------------------------------
 assets/image/
-
-# 주요 이미지 확장자 제외
 *.png
 *.jpg
 *.jpeg
 *.gif
 *.webp
 *.svg
+
+# -------------------------------------------------------------------------
+# Flutter / Dart 공식 표준 .gitignore 템플릿
+# -------------------------------------------------------------------------
+# https://github.com/github/gitignore/blob/main/Dart.gitignore
+
+# 빌드 및 캐시 폴더
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# 웹 컴파일 관련 임시 파일
+.pub-cache/
+.pub/
+
+# 플랫폼 특화 임시 디렉토리
+android/.gradle/
+android/local.properties
+android/project.properties
+android/flutter-plugins-dependencies
+ios/.symlinks/
+ios/Flutter/Debug.xcconfig
+ios/Flutter/Release.xcconfig
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+
+# 에디터 및 개발 도구 캐시
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 로그 파일
+*.log
+
+# 운영체제 임시 파일
+Thumbs.db
+Desktop.ini
+.DS_Store
