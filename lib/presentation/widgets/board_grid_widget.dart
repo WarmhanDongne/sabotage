@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../data/models/grid_node.dart';
-import '../../data/models/card.dart' as game_card;
 import 'card_widget.dart';
 
-/// 보드 격자 전체를 렌더링하는 위젯.
-/// InteractiveViewer로 감싸지며 멀티터치 팬/줌을 지원합니다.
-/// [board]의 좌표계를 기준으로 카드를 배치하며, 보드 외부 여백도 렌더링합니다.
+/// 오리지널 에셋(Ipad.png) 기반 보드 격자 렌더링 위젯.
+/// Ipad.png의 9x5 그리드 구조 위에 투명하게 올라가며, 실제 카드가 배치되는 역할을 합니다.
 class BoardGridWidget extends StatelessWidget {
   final List<GridNode> board;
   final List<GridNode> goalCards;
   final double cardSize;
-
-  // Phase 4에서 클라이언트 뷰에서 사용하기 위한 오버레이 세트
-  // 호스트 뷰에서는 사용하지 않음 (null)
-  final Set<String>? validOverlayCoords;   // "x,y" 형식
+  final Set<String>? validOverlayCoords;
   final Set<String>? invalidOverlayCoords;
   final void Function(int x, int y)? onGridTap;
 
@@ -21,7 +16,7 @@ class BoardGridWidget extends StatelessWidget {
     super.key,
     required this.board,
     required this.goalCards,
-    this.cardSize = 64.0,
+    required this.cardSize,
     this.validOverlayCoords,
     this.invalidOverlayCoords,
     this.onGridTap,
@@ -29,42 +24,34 @@ class BoardGridWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 렌더링 범위 계산: 보드에 놓인 카드의 min/max 좌표 기준으로 확장
-    final allNodes = [...board, ...goalCards];
-    final int minX, maxX, minY, maxY;
+    // 9x5 고정 그리드 렌더링 (Ipad.png 에셋 구조 매칭)
+    // 실제 게임 진행 시 범위가 넓어지면 스크롤이 필요할 수 있으나, 
+    // 초기 뷰는 오리지널 에셋의 9x5를 기준으로 렌더링합니다.
+    const int cols = 9;
+    const int rows = 5;
+    
+    // 시작 카드 위치 보정 (오리지널 이미지는 좌측 중앙쯤에 카드가 있음)
+    // 원본 게임에서 시작 카드는 (0,0)이고 목적지 카드는 (8, 0), (8, 2), (8, -2) 식입니다.
+    // 여기서는 단순히 9x5 격자를 렌더링합니다.
+    const int startX = 0;
+    const int startY = -2; // 5행이므로 y는 -2, -1, 0, 1, 2 
 
-    if (allNodes.isEmpty) {
-      minX = -4; maxX = 4; minY = -3; maxY = 3;
-    } else {
-      minX = allNodes.map((n) => n.x).reduce((a, b) => a < b ? a : b) - 2;
-      maxX = allNodes.map((n) => n.x).reduce((a, b) => a > b ? a : b) + 2;
-      minY = allNodes.map((n) => n.y).reduce((a, b) => a < b ? a : b) - 2;
-      maxY = allNodes.map((n) => n.y).reduce((a, b) => a > b ? a : b) + 2;
-    }
-
-    final cols = maxX - minX + 1;
-    final rows = maxY - minY + 1;
-    final totalWidth = cols * cardSize;
-    final totalHeight = rows * cardSize;
-
-    // 보드 노드를 좌표 맵으로 변환 (빠른 검색)
     final Map<String, GridNode> boardMap = {
       for (var n in [...board, ...goalCards]) '${n.x},${n.y}': n,
     };
 
     return SizedBox(
-      width: totalWidth,
-      height: totalHeight,
+      width: cols * cardSize,
+      height: rows * cardSize,
       child: Stack(
         children: [
-          // 배경 격자 (모든 격자 셀)
           for (int row = 0; row < rows; row++)
             for (int col = 0; col < cols; col++)
               _buildCell(
                 col: col,
                 row: row,
-                x: minX + col,
-                y: minY + row,
+                x: startX + col,
+                y: startY + row,
                 boardMap: boardMap,
               ),
         ],
@@ -87,13 +74,31 @@ class BoardGridWidget extends StatelessWidget {
     return Positioned(
       left: col * cardSize,
       top: row * cardSize,
-      child: CardWidget(
-        card: node?.card,
-        isRevealed: node?.isRevealed ?? true,
-        isHighlightedValid: isValid,
-        isHighlightedInvalid: isInvalid,
-        size: cardSize,
+      child: GestureDetector(
         onTap: onGridTap != null ? () => onGridTap!(x, y) : null,
+        child: Container(
+          width: cardSize,
+          height: cardSize,
+          // Ipad.png에 이미 그리드가 있으므로 컨테이너 자체는 투명하게 유지.
+          // 단, 사용자가 놓을 수 있는 유효/무효 위치일 경우에만 오리지널 톤에 맞는 오버레이 표시.
+          decoration: BoxDecoration(
+            color: isValid
+                ? Colors.green.withOpacity(0.3)
+                : (isInvalid ? Colors.red.withOpacity(0.3) : Colors.transparent),
+            // 보드 그리드 셀 모서리 둥글게 (오리지널 이미지 기반)
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(2.0),
+            child: node != null
+                ? CardWidget(
+                    card: node.card,
+                    isRevealed: node.isRevealed,
+                    size: cardSize,
+                  )
+                : null,
+          ),
+        ),
       ),
     );
   }

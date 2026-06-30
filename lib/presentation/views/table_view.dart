@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../main.dart';
 import '../widgets/board_grid_widget.dart';
 
-/// 호스트(태블릿) 보드 뷰어
-/// DESIGN.md 기준: 패널 차콜 + 브라스 테두리 + 골드 포인트
+/// 호스트(태블릿) 뷰어.
+/// 기존 다크모드/커스텀 디자인 완전 폐기.
+/// 오리지널 에셋(Ipad.png)의 톤앤매너와 구조(9x5 대리석 보드 + 반투명 다크 사이드바) 100% 준수.
 class TableView extends StatelessWidget {
   final String roomId;
 
@@ -12,68 +12,53 @@ class TableView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 상단 플레이어 상태 바
-            _buildTopBar(),
-            // 보드 영역
-            Expanded(child: _buildBoardArea()),
-            // 하단 게임 정보 바
-            _buildBottomInfoBar(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopBar() {
-    return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: SabotageColors.surfaceContainerLow,
-        border: Border(
-          bottom: BorderSide(color: SabotageColors.borderBrass, width: 1),
-        ),
-      ),
-      child: Row(
+      body: Stack(
         children: [
-          // 게임 타이틀
-          Text(
-            'SABOTEUR',
-            style: TextStyle(
-              color: SabotageColors.primary,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 4,
-              fontFamily: 'Literata',
+          // 1. 오리지널 태블릿 배경 (Ipad.png)
+          Positioned.fill(
+            child: Image.asset(
+              'assets/start_the_game/Ipad.png',
+              fit: BoxFit.cover,
             ),
           ),
-          const Spacer(),
-          // 방 코드 뱃지
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: SabotageColors.panelCharcoal,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: SabotageColors.outlineVariant),
-            ),
+          
+          // 2. 메인 게임 보드 (대리석 배경 위에 올려질 실제 카드들)
+          // Ipad.png 이미지 자체에 이미 그리드가 그려져 있으므로,
+          // 여기서는 그 그리드 비율에 맞게 카드들이 배치되도록 렌더링해야 함.
+          // 편의상 InteractiveViewer로 감싸서 사용자가 패닝/줌 할 수 있게 하되,
+          // 배경 이미지와의 정렬을 위해 배경 이미지 자체를 InteractiveViewer 안에 넣는 것이 이상적일 수 있음.
+          // 하지만 Ipad.png에는 사이드바(DRAW DECK 등)도 포함되어 있으므로, 
+          // 뷰포트 내에 9x5 그리드를 Ipad.png의 왼쪽 보드 영역에 맞춰 렌더링합니다.
+          SafeArea(
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.meeting_room_outlined, color: SabotageColors.muted, size: 14),
-                const SizedBox(width: 6),
-                Text(
-                  roomId.toUpperCase(),
-                  style: const TextStyle(
-                    color: SabotageColors.onSurfaceVariant,
-                    fontSize: 12,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'JetBrains Mono',
+                // 왼쪽 9x5 보드 영역
+                Expanded(
+                  flex: 75, // 대략 Ipad.png의 75%가 보드 영역
+                  child: Center(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // 9열 5행 기준 정사각형 슬롯 크기 계산
+                        final cardWidth = constraints.maxWidth / 9;
+                        final cardHeight = constraints.maxHeight / 5;
+                        final cardSize = cardWidth < cardHeight * 0.7 ? cardWidth : cardHeight * 0.7; // 카드 비율 약 1:1.5 고려 (하지만 보드 타일은 정사각형에 가까움)
+
+                        return BoardGridWidget(
+                          board: const [], // TODO: 실제 보드 상태 연결
+                          goalCards: const [],
+                          cardSize: cardSize,
+                          // Ipad.png의 타일 비율 및 라운딩 스펙을 BoardGridWidget 내부에서 적용
+                        );
+                      },
+                    ),
                   ),
                 ),
+                // 오른쪽 사이드바 영역 (Ipad.png에 이미 그려져 있으므로 투명하게 유지하며 터치 영역만 배치할 수도 있으나,
+                // 동적 텍스트(예: 42 REMAINING) 렌더링을 위해 투명 위젯 레이어를 올림)
+                Expanded(
+                  flex: 25,
+                  child: _buildSidebarOverlay(),
+                ),
               ],
             ),
           ),
@@ -82,88 +67,84 @@ class TableView extends StatelessWidget {
     );
   }
 
-  Widget _buildBoardArea() {
-    return Stack(
+  /// Ipad.png의 오른쪽 사이드바 영역 위에 얹어질 동적 데이터 오버레이
+  Widget _buildSidebarOverlay() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // 배경 그라디언트
-        Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment.center,
-              radius: 1.2,
-              colors: [
-                SabotageColors.surfaceContainerLow,
-                SabotageColors.surfaceContainerLowest,
-              ],
+        // 상단 DRAW DECK
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'DRAW DECK',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
+            // 동적 덱 남은 수량 뱃지
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.amber[400],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                '42 REMAINING',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+          ],
         ),
-        // InteractiveViewer 보드판
-        Center(
-          child: InteractiveViewer(
-            boundaryMargin: const EdgeInsets.all(200),
-            minScale: 0.3,
-            maxScale: 3.0,
-            child: BoardGridWidget(
-              board: const [],
-              goalCards: const [],
-              cardSize: 72.0,
+        
+        // 중앙 TURN TIME
+        const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'TURN TIME',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
             ),
-          ),
+            SizedBox(height: 16),
+            // 임시 진행 타이머 (Ipad.png에 그려진 노란 링 위에 위치)
+            SizedBox(
+              width: 80,
+              height: 80,
+              child: CircularProgressIndicator(
+                value: 0.6,
+                color: Colors.amber,
+                strokeWidth: 8,
+              ),
+            ),
+          ],
+        ),
+
+        // 하단 DRAW DECK (Discard Pile)
+        const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'DISCARD',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+            SizedBox(height: 80), // 카드 렌더링 공간
+          ],
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomInfoBar() {
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(
-        color: SabotageColors.panelCharcoal,
-        border: Border(
-          top: BorderSide(color: SabotageColors.borderBrass, width: 2),
-        ),
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // 라운드 표시
-          Row(
-            children: [
-              Icon(Icons.loop, color: SabotageColors.muted, size: 16),
-              SizedBox(width: 6),
-              Text(
-                'ROUND 1',
-                style: TextStyle(
-                  color: SabotageColors.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'JetBrains Mono',
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          // 덱 남은 장수
-          Row(
-            children: [
-              Icon(Icons.layers, color: SabotageColors.muted, size: 16),
-              SizedBox(width: 6),
-              Text(
-                '42 REMAINING',
-                style: TextStyle(
-                  color: SabotageColors.primaryContainer,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'JetBrains Mono',
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

@@ -46,3 +46,6 @@ flutter:
     - assets/board_info/011_yellow/
     - assets/board_info/012_black/
     - assets/phone_info/
+    - assets/start_the_game/
+    - assets/using_loadcard_/
+    - assets/using_loadmap_card/
