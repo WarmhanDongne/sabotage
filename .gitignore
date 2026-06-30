@@ -1,0 +1,10 @@
+# 이미지 폴더 제외
+assets/image/
+
+# 주요 이미지 확장자 제외
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
