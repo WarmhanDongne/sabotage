@@ -26,19 +26,19 @@ class Validator {
     final rightNode = _getNodeAt(board, targetX + 1, targetY);
 
     if (topNode != null) {
-      if (topNode.card.hasBottom != newCard.hasTop) return false;
+      if (topNode.card.currentBottom != newCard.currentTop) return false;
       hasAdjacent = true;
     }
     if (bottomNode != null) {
-      if (bottomNode.card.hasTop != newCard.hasBottom) return false;
+      if (bottomNode.card.currentTop != newCard.currentBottom) return false;
       hasAdjacent = true;
     }
     if (leftNode != null) {
-      if (leftNode.card.hasRight != newCard.hasLeft) return false;
+      if (leftNode.card.currentRight != newCard.currentLeft) return false;
       hasAdjacent = true;
     }
     if (rightNode != null) {
-      if (rightNode.card.hasLeft != newCard.hasRight) return false;
+      if (rightNode.card.currentLeft != newCard.currentRight) return false;
       hasAdjacent = true;
     }
 
@@ -85,20 +85,20 @@ class Validator {
 
       // 인접 노드 탐색
       final neighbors = [
-        if (current.card.hasTop) _getNodeAt(board, current.x, current.y - 1),
-        if (current.card.hasBottom) _getNodeAt(board, current.x, current.y + 1),
-        if (current.card.hasLeft) _getNodeAt(board, current.x - 1, current.y),
-        if (current.card.hasRight) _getNodeAt(board, current.x + 1, current.y),
+        if (current.card.currentTop) _getNodeAt(board, current.x, current.y - 1),
+        if (current.card.currentBottom) _getNodeAt(board, current.x, current.y + 1),
+        if (current.card.currentLeft) _getNodeAt(board, current.x - 1, current.y),
+        if (current.card.currentRight) _getNodeAt(board, current.x + 1, current.y),
       ];
 
       for (var neighbor in neighbors) {
         if (neighbor != null && !visited.contains('${neighbor.x},${neighbor.y}')) {
           // 상대방 굴도 내 쪽으로 열려있어야 함 (2단계에서 검증하지만 경로 탐색시 한번 더 확인)
           bool canMove = false;
-          if (neighbor.x == current.x && neighbor.y == current.y - 1 && neighbor.card.hasBottom) canMove = true;
-          if (neighbor.x == current.x && neighbor.y == current.y + 1 && neighbor.card.hasTop) canMove = true;
-          if (neighbor.x == current.x - 1 && neighbor.y == current.y && neighbor.card.hasRight) canMove = true;
-          if (neighbor.x == current.x + 1 && neighbor.y == current.y && neighbor.card.hasLeft) canMove = true;
+          if (neighbor.x == current.x && neighbor.y == current.y - 1 && neighbor.card.currentBottom) canMove = true;
+          if (neighbor.x == current.x && neighbor.y == current.y + 1 && neighbor.card.currentTop) canMove = true;
+          if (neighbor.x == current.x - 1 && neighbor.y == current.y && neighbor.card.currentRight) canMove = true;
+          if (neighbor.x == current.x + 1 && neighbor.y == current.y && neighbor.card.currentLeft) canMove = true;
 
           if (canMove) {
             visited.add('${neighbor.x},${neighbor.y}');

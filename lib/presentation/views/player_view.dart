@@ -25,6 +25,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   ControllerStateMachine _csm = const ControllerStateMachine();
   bool _isPending = false;
   int? _selectedCardIndex;
+  bool _isRotated = false;
 
   // Identity Card 애니메이션
   late AnimationController _identitySlideController;
@@ -124,7 +125,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                       if (state.pendingAction != null && state.pendingAction!['playerId'] == widget.playerId)
                         _buildPendingActionUI()
                       else if (_csm.currentState == ControllerState.cardSelected && isMyTurn)
-                        _buildActionButtons(),
+                        _buildActionButtons(currentHandImages),
                       
                       // 부채꼴 카드 영역
                       Expanded(
@@ -235,7 +236,10 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                 alignment: Alignment.bottomCenter, // 하단을 기준으로 회전
                 child: GestureDetector(
                   onTap: () => _onCardTapped(index),
-                  child: AnimatedContainer(
+                  child: Transform.rotate(
+                    angle: (isSelected && _isRotated) ? math.pi : 0.0,
+                    alignment: Alignment.center,
+                    child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOutCubic,
                     width: cardWidth,
@@ -362,10 +366,32 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(List<String> currentHandImages) {
+    bool isPathCard = false;
+    if (_selectedCardIndex != null && _selectedCardIndex! < currentHandImages.length) {
+      final cardId = currentHandImages[_selectedCardIndex!];
+      isPathCard = cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path');
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        if (isPathCard) ...[
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isRotated ? Colors.deepPurple : Colors.blueGrey,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () {
+              setState(() {
+                _isRotated = !_isRotated;
+              });
+            },
+            child: const Text('180도 회전', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 16),
+        ],
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.amber[700],
@@ -422,9 +448,11 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     setState(() {
       if (_selectedCardIndex == index) {
         _selectedCardIndex = null;
+        _isRotated = false;
         _csm = _csm.cancelSelection();
       } else {
         _selectedCardIndex = index;
+        _isRotated = false;
         _csm = _csm.selectCard('card_$index');
       }
     });
@@ -462,7 +490,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
       final me = state.players.firstWhere((p) => p.id == widget.playerId);
       final realCardId = me.handCardIds[_selectedCardIndex!];
 
-      await repo.setPendingAction(widget.roomId, widget.playerId, realCardId);
+      await repo.setPendingAction(widget.roomId, widget.playerId, realCardId, isRotated: _isRotated);
       
       if (mounted) {
         setState(() {

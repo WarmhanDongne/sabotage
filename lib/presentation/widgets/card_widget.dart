@@ -135,15 +135,18 @@ class _CardWidgetState extends State<CardWidget> with SingleTickerProviderStateM
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: Image.asset(
-          path,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: Colors.brown[700],
-              child: const Center(child: Icon(Icons.broken_image, color: Colors.white)),
-            );
-          },
+        child: Transform.rotate(
+          angle: widget.card?.isRotated == true ? 3.1415926535897932 : 0.0,
+          child: Image.asset(
+            path,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.brown[700],
+                child: const Center(child: Icon(Icons.broken_image, color: Colors.white)),
+              );
+            },
+          ),
         ),
       ),
     );

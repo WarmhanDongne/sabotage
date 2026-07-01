@@ -148,7 +148,7 @@ class GameRepository {
   }
 
   // 거래 트랜잭션: 굴 카드 놓기
-  Future<void> playPathCard(String roomId, String playerId, String cardId, int targetX, int targetY) async {
+  Future<void> playPathCard(String roomId, String playerId, String cardId, int targetX, int targetY, {bool isRotated = false}) async {
     final docRef = _firestore.collection('rooms').doc(roomId);
 
     await _firestore.runTransaction((transaction) async {
@@ -168,14 +168,12 @@ class GameRepository {
 
       if (!player.handCardIds.contains(cardId)) throw Exception("Card not in hand");
 
-      // 패에서 카드 찾기 (원래는 id만 알면 전체 카드 정보를 알아야 함. 여기서는 간략히 생성)
-      // 실제로는 deck에 있던 원본 정보가 필요하지만, 
-      // MVP에서는 ID를 파싱해서 임시 생성하거나 별도의 카드 사전(Dictionary)을 써야 합니다.
-      // 편의상 id가 'path_...' 형식이면 기본 연결 형태 부여.
-      final card = game_card.Card(
-        id: cardId, type: game_card.CardType.path, 
-        hasTop: true, hasBottom: true, hasLeft: true, hasRight: true, hasCenter: true
-      ); // 임시
+      // 패에서 카드 정보 가져오기 (CardDatabase 이용)
+      final baseCard = CardDatabase.getCardById(cardId);
+      if (baseCard == null) throw Exception("Card not found in database");
+      
+      // 회전 상태 적용
+      final card = baseCard.copyWith(isRotated: isRotated);
 
       if (!Validator.canPlaceCard(state.board, card, targetX, targetY)) {
         throw Exception("Invalid card placement");
@@ -312,7 +310,7 @@ class GameRepository {
   // ──── 크로스 디바이스 상호작용 (Pending Action) ────
 
   // 모바일 기기에서 "사용 준비" 누를 때 호출
-  Future<void> setPendingAction(String roomId, String playerId, String cardId) async {
+  Future<void> setPendingAction(String roomId, String playerId, String cardId, {bool isRotated = false}) async {
     final docRef = _firestore.collection('rooms').doc(roomId);
     await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(docRef);
@@ -333,8 +331,9 @@ class GameRepository {
         pendingAction: {
           'playerId': playerId,
           'cardId': cardId,
+          'isRotated': isRotated,
           // 액션 타입 파싱 개선
-          'type': cardId.startsWith('path') ? 'path' : (cardId.startsWith('act_') ? 'action' : 'unknown')
+          'type': cardId.startsWith('path') || cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path') ? 'path' : (cardId.startsWith('act_') || cardId.startsWith('001_action') || cardId.startsWith('009_cave_sword') ? 'action' : 'unknown')
         }
       );
       transaction.update(docRef, newState.toJson());

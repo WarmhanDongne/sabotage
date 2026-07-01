@@ -40,6 +40,9 @@ class Card {
   // 사보타지 2 확장용 (문의 색상 등)
   final String? doorColor;
   final bool hasCrystal;
+  
+  // 회전 상태 (180도 회전 여부)
+  final bool isRotated;
 
   const Card({
     required this.id,
@@ -53,7 +56,14 @@ class Card {
     this.actionType = ActionType.none,
     this.doorColor,
     this.hasCrystal = false,
+    this.isRotated = false,
   });
+
+  // 동적으로 회전이 적용된 연결 방향 속성
+  bool get currentTop => isRotated ? hasBottom : hasTop;
+  bool get currentBottom => isRotated ? hasTop : hasBottom;
+  bool get currentLeft => isRotated ? hasRight : hasLeft;
+  bool get currentRight => isRotated ? hasLeft : hasRight;
 
   // 복사 생성자 (불변성 유지)
   Card copyWith({
@@ -68,6 +78,7 @@ class Card {
     ActionType? actionType,
     String? doorColor,
     bool? hasCrystal,
+    bool? isRotated,
   }) {
     return Card(
       id: id ?? this.id,
@@ -81,6 +92,7 @@ class Card {
       actionType: actionType ?? this.actionType,
       doorColor: doorColor ?? this.doorColor,
       hasCrystal: hasCrystal ?? this.hasCrystal,
+      isRotated: isRotated ?? this.isRotated,
     );
   }
 
@@ -97,6 +109,7 @@ class Card {
       'actionType': actionType.name,
       'doorColor': doorColor,
       'hasCrystal': hasCrystal,
+      'isRotated': isRotated,
     };
   }
 
@@ -113,6 +126,7 @@ class Card {
       actionType: ActionType.values.firstWhere((e) => e.name == json['actionType'], orElse: () => ActionType.none),
       doorColor: json['doorColor'] as String?,
       hasCrystal: json['hasCrystal'] as bool? ?? false,
+      isRotated: json['isRotated'] as bool? ?? false,
     );
   }
 }

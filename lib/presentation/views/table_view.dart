@@ -99,8 +99,10 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
             String pType = state.pendingAction!['type'];
             String cId = state.pendingAction!['cardId'];
 
-            final card = CardDatabase.getCardById(cId);
-            if (card != null) {
+            final baseCard = CardDatabase.getCardById(cId);
+            if (baseCard != null) {
+              final isRotated = state.pendingAction!['isRotated'] == true;
+              final card = baseCard.copyWith(isRotated: isRotated);
               if (card.type == game_card.CardType.path) {
                 int minX = 0, maxX = 11, minY = 0, maxY = 6;
                 for (var node in [...board, ...goalCards]) {
@@ -112,7 +114,7 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                 for (int x = minX - 1; x <= maxX + 1; x++) {
                   for (int y = minY - 1; y <= maxY + 1; y++) {
                     if (Validator.canPlaceCard(board, card, x, y)) {
-                      validCoords.add('$x,$y');
+                      validCoords!.add('$x,$y');
                     }
                   }
                 }
@@ -182,6 +184,7 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                                       state.pendingAction!['cardId'],
                                       x,
                                       y,
+                                      isRotated: state.pendingAction!['isRotated'] == true,
                                     );
                                   } else if (state.pendingAction!['type'] == 'action') {
                                     final cId = state.pendingAction!['cardId'];
