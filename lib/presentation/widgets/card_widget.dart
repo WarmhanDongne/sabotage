@@ -113,9 +113,9 @@ class _CardWidgetState extends State<CardWidget> with SingleTickerProviderStateM
   }
 
   Widget _buildCardImage() {
-    // 뒷면 처리 (목적지 등)
     if (!widget.isRevealed) {
-      return _buildImage('assets/board_info/009_cave_sword/009_cave_sword_03.png');
+      // 뒷면 처리 (목적지 등) - 유저 요청에 따라 02번 사용
+      return _buildImage('assets/board_info/009_cave_sword/009_cave_sword_02.png');
     }
 
     // 카드 타입에 따른 오리지널 에셋 이미지 매핑 
@@ -126,7 +126,7 @@ class _CardWidgetState extends State<CardWidget> with SingleTickerProviderStateM
         assetPath = 'assets/board_info/009_cave_sword/009_cave_sword_01.png'; // 사용자가 지정한 시작 카드
         break;
       case game_card.CardType.goal:
-        assetPath = 'assets/board_info/004_path/004_path_03.png'; // 목적지 카드 앞면 에셋
+        assetPath = 'assets/board_info/009_cave_sword/009_cave_sword_02.png'; // 목적지 카드 에셋
         break;
       case game_card.CardType.action:
         assetPath = 'assets/board_info/001_action/001_action_01.png';
