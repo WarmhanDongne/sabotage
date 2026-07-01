@@ -51,12 +51,28 @@ class CardImageMapper {
   /// 단순 ID 기반으로 에셋을 가져오는 헬퍼 (모바일 핸드 카드 등에서 사용)
   static String getImagePathById(String cardId) {
     if (cardId.startsWith('path')) {
-      // id의 숫자를 기반으로 해시 생성
-      final hashStr = cardId.replaceAll('path_', '');
-      final idx = (int.tryParse(hashStr) ?? 0);
-      int fileIdx = (idx % 9) + 1;
-      int folderIdx = (idx % 4) + 4; // 004 ~ 007
-      return 'assets/board_info/00${folderIdx}_path/00${folderIdx}_path_0$fileIdx.png';
+      // ID 구조: path_11111_0 (shapeStr은 1과 0으로 이루어진 5자리 문자열)
+      final parts = cardId.split('_');
+      if (parts.length >= 3) {
+        final shapeStr = parts[1];
+        if (shapeStr.length == 5) {
+          int shapeHash = (shapeStr[0] == '1' ? 1 : 0) + 
+                          (shapeStr[1] == '1' ? 2 : 0) + 
+                          (shapeStr[2] == '1' ? 4 : 0) + 
+                          (shapeStr[3] == '1' ? 8 : 0) + 
+                          (shapeStr[4] == '1' ? 16 : 0);
+          
+          int fileIdx = (shapeHash % 9) + 1;
+          if (shapeStr[4] == '0') { // !hasCenter
+            fileIdx = (shapeHash % 7) + 1; // 007_path has 7 files
+            return 'assets/board_info/007_path/007_path_0$fileIdx.png';
+          }
+          if (shapeHash % 3 == 0) return 'assets/board_info/004_path/004_path_0$fileIdx.png';
+          if (shapeHash % 3 == 1) return 'assets/board_info/005_path/005_path_0$fileIdx.png';
+          return 'assets/board_info/006_path/006_path_0$fileIdx.png';
+        }
+      }
+      return 'assets/board_info/004_path/004_path_01.png';
     } else if (cardId.startsWith('act_break')) {
       return 'assets/board_info/001_action/001_action_01.png';
     } else if (cardId.startsWith('act_fix')) {

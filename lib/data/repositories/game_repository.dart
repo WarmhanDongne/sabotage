@@ -210,11 +210,15 @@ class GameRepository {
       final playerIndex = state.players.indexWhere((p) => p.id == playerId);
       if (!state.players[playerIndex].handCardIds.contains(cardId)) throw Exception("Card not in hand");
 
-      // 임시 행동 카드 생성 (마찬가지로 딕셔너리 연동 필요)
       game_card.ActionType actionType = game_card.ActionType.none;
-      if (cardId.contains('breakPickaxe')) actionType = game_card.ActionType.breakPickaxe;
-      else if (cardId.contains('fixPickaxe')) actionType = game_card.ActionType.fixPickaxe;
-      // ... 그 외 맵핑 ...
+      if (cardId.startsWith('act_break_pick')) actionType = game_card.ActionType.breakPickaxe;
+      else if (cardId.startsWith('act_break_lan')) actionType = game_card.ActionType.breakLantern;
+      else if (cardId.startsWith('act_break_cart')) actionType = game_card.ActionType.breakCart;
+      else if (cardId.startsWith('act_fix_pick')) actionType = game_card.ActionType.fixPickaxe;
+      else if (cardId.startsWith('act_fix_lan')) actionType = game_card.ActionType.fixLantern;
+      else if (cardId.startsWith('act_fix_cart')) actionType = game_card.ActionType.fixCart;
+      else if (cardId.startsWith('act_map')) actionType = game_card.ActionType.map;
+      else if (cardId.startsWith('act_rock')) actionType = game_card.ActionType.rockfall;
 
       final card = game_card.Card(id: cardId, type: game_card.CardType.action, actionType: actionType);
 
@@ -309,8 +313,8 @@ class GameRepository {
         pendingAction: {
           'playerId': playerId,
           'cardId': cardId,
-          // MVP용: 임시 파싱
-          'type': cardId.startsWith('path') ? 'path' : (cardId.startsWith('action') ? 'action' : 'unknown')
+          // 액션 타입 파싱 개선
+          'type': cardId.startsWith('path') ? 'path' : (cardId.startsWith('act_') ? 'action' : 'unknown')
         }
       );
       transaction.update(docRef, newState.toJson());
@@ -382,9 +386,10 @@ class GameRepository {
     int idCounter = 0;
 
     void addPath(int count, bool top, bool bottom, bool left, bool right, bool center) {
+      String shapeStr = '${top?1:0}${right?1:0}${bottom?1:0}${left?1:0}${center?1:0}';
       for (int i = 0; i < count; i++) {
         deck.add(game_card.Card(
-          id: 'path_${idCounter++}', 
+          id: 'path_${shapeStr}_${idCounter++}', 
           type: game_card.CardType.path, 
           hasTop: top, hasBottom: bottom, hasLeft: left, hasRight: right, hasCenter: center
         ));

@@ -91,27 +91,55 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
 
           // Pending Action 감지 및 유효한 좌표 계산
           Set<String>? validCoords;
-          if (state.pendingAction != null && state.pendingAction!['type'] == 'path') {
+          if (state.pendingAction != null) {
             validCoords = {};
-            final card = game_card.Card(
-              id: state.pendingAction!['cardId'],
-              type: game_card.CardType.path,
-              hasTop: true, hasBottom: true, hasLeft: true, hasRight: true, hasCenter: true,
-            );
-            
-            // 현재 보드의 모든 노드 범위에서 한 칸씩 더 넓게 탐색
-            int minX = 0, maxX = 11, minY = 0, maxY = 6;
-            for (var node in [...board, ...goalCards]) {
-              if (node.x < minX) minX = node.x;
-              if (node.x > maxX) maxX = node.x;
-              if (node.y < minY) minY = node.y;
-              if (node.y > maxY) maxY = node.y;
-            }
-            
-            for (int x = minX - 1; x <= maxX + 1; x++) {
-              for (int y = minY - 1; y <= maxY + 1; y++) {
-                if (Validator.canPlaceCard(board, card, x, y)) {
-                  validCoords.add('$x,$y');
+            String pType = state.pendingAction!['type'];
+            String cId = state.pendingAction!['cardId'];
+
+            if (pType == 'path') {
+              bool top = true, right = true, bottom = true, left = true, center = true;
+              final parts = cId.split('_');
+              if (parts.length >= 3 && parts[1].length == 5) {
+                final shapeStr = parts[1];
+                top = shapeStr[0] == '1';
+                right = shapeStr[1] == '1';
+                bottom = shapeStr[2] == '1';
+                left = shapeStr[3] == '1';
+                center = shapeStr[4] == '1';
+              }
+              final card = game_card.Card(
+                id: cId, type: game_card.CardType.path,
+                hasTop: top, hasBottom: bottom, hasLeft: left, hasRight: right, hasCenter: center,
+              );
+              
+              int minX = 0, maxX = 11, minY = 0, maxY = 6;
+              for (var node in [...board, ...goalCards]) {
+                if (node.x < minX) minX = node.x;
+                if (node.x > maxX) maxX = node.x;
+                if (node.y < minY) minY = node.y;
+                if (node.y > maxY) maxY = node.y;
+              }
+              for (int x = minX - 1; x <= maxX + 1; x++) {
+                for (int y = minY - 1; y <= maxY + 1; y++) {
+                  if (Validator.canPlaceCard(board, card, x, y)) {
+                    validCoords.add('$x,$y');
+                  }
+                }
+              }
+            } else if (pType == 'action') {
+              if (cId.startsWith('act_map')) {
+                // 지도는 목적지 카드만 타겟
+                for (var goal in goalCards) {
+                  validCoords.add('${goal.x},${goal.y}');
+                }
+              } else if (cId.startsWith('act_rock')) {
+                // 낙석은 시작점 제외한 모든 길 카드 타겟
+                for (var node in board) {
+                  if (node.card.type == game_card.CardType.path) {
+                    // 시작점인지 확인 (일반적으로 x=0, y=0 등, 혹은 id로 판별)
+                    // 현재 시작점은 card.type == start 로 생성되므로 여기 포함 안 됨 (path만 필터)
+                    validCoords.add('${node.x},${node.y}');
+                  }
                 }
               }
             }
@@ -156,17 +184,30 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                             onGridTap: (x, y) async {
                               if (validCoords != null && validCoords!.contains('$x,$y')) {
                                 try {
-                                  await context.read<GameRepository>().playPathCard(
-                                    widget.roomId,
-                                    state.pendingAction!['playerId'],
-                                    state.pendingAction!['cardId'],
-                                    x,
-                                    y,
-                                  );
+                                  if (state.pendingAction!['type'] == 'path') {
+                                    await context.read<GameRepository>().playPathCard(
+                                      widget.roomId,
+                                      state.pendingAction!['playerId'],
+                                      state.pendingAction!['cardId'],
+                                      x,
+                                      y,
+                                    );
+                                  } else if (state.pendingAction!['type'] == 'action') {
+                                    final cId = state.pendingAction!['cardId'];
+                                    if (cId.startsWith('act_rock') || cId.startsWith('act_map')) {
+                                      await context.read<GameRepository>().playActionCard(
+                                        widget.roomId,
+                                        state.pendingAction!['playerId'],
+                                        cId,
+                                        targetX: x,
+                                        targetY: y,
+                                      );
+                                    }
+                                  }
                                 } catch (e) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('카드 놓기 실패: $e')),
+                                      SnackBar(content: Text('동작 실패: $e')),
                                     );
                                   }
                                 }
@@ -186,6 +227,15 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                   child: _buildTopHUD(remainingCards),
                 ),
               ),
+              // 4. 행동 카드 대상 선택 UI (장비 파괴/수리)
+              if (state.pendingAction != null && state.pendingAction!['type'] == 'action' && 
+                  (state.pendingAction!['cardId'].startsWith('act_break') || state.pendingAction!['cardId'].startsWith('act_fix')))
+                Positioned(
+                  right: 16,
+                  top: 100,
+                  bottom: 100,
+                  child: _buildPlayerTargetList(context, state),
+                ),
               // 승리 알림 패널 및 로비로 돌아가기
               if (state.isGameOver)
                 Container(
@@ -275,6 +325,60 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlayerTargetList(BuildContext context, GameState state) {
+    return Container(
+      width: 200,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.amber, width: 2),
+      ),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              '대상 선택',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const Divider(color: Colors.white54),
+          Expanded(
+            child: ListView.builder(
+              itemCount: state.players.length,
+              itemBuilder: (context, index) {
+                final p = state.players[index];
+                return ListTile(
+                  title: Text(p.id, style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    '곡괭이:${p.isPickaxeBroken?'❌':'✅'} 수레:${p.isCartBroken?'❌':'✅'} 랜턴:${p.isLanternBroken?'❌':'✅'}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                  ),
+                  onTap: () async {
+                    try {
+                      await context.read<GameRepository>().playActionCard(
+                        widget.roomId,
+                        state.pendingAction!['playerId'],
+                        state.pendingAction!['cardId'],
+                        targetPlayerId: p.id,
+                      );
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('동작 실패: $e')),
+                        );
+                      }
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
