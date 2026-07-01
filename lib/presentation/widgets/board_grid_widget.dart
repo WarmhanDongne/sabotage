@@ -26,9 +26,21 @@ class BoardGridWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 새 배경 이미지(basic_image.png)를 위해 12x7 가상 그리드를 화면 전체에 사용합니다.
-    const int cols = 12;
-    const int rows = 7;
+    int minX = 0;
+    int maxX = 11;
+    int minY = 0;
+    int maxY = 6;
+
+    // 현재 놓여진 모든 카드의 좌표를 기준으로 경계 확장
+    for (var node in [...board, ...goalCards]) {
+      if (node.x < minX) minX = node.x;
+      if (node.x > maxX) maxX = node.x;
+      if (node.y < minY) minY = node.y;
+      if (node.y > maxY) maxY = node.y;
+    }
+
+    final int cols = maxX - minX + 1;
+    final int rows = maxY - minY + 1;
 
     final Map<String, GridNode> boardMap = {
       for (var n in [...board, ...goalCards]) '${n.x},${n.y}': n,
@@ -44,9 +56,11 @@ class BoardGridWidget extends StatelessWidget {
               _buildCell(
                 col: col,
                 row: row,
-                x: col,
-                y: row,
+                x: minX + col,
+                y: minY + row,
                 boardMap: boardMap,
+                minX: minX,
+                minY: minY,
               ),
         ],
       ),
@@ -59,6 +73,8 @@ class BoardGridWidget extends StatelessWidget {
     required int x,
     required int y,
     required Map<String, GridNode> boardMap,
+    required int minX,
+    required int minY,
   }) {
     final key = '$x,$y';
     final node = boardMap[key];
@@ -66,8 +82,8 @@ class BoardGridWidget extends StatelessWidget {
     final isInvalid = invalidOverlayCoords?.contains(key) ?? false;
 
     return Positioned(
-      left: col * cellWidth,
-      top: row * cellHeight,
+      left: (x - minX) * cellWidth,
+      top: (y - minY) * cellHeight,
       child: GestureDetector(
         onTap: onGridTap != null ? () => onGridTap!(x, y) : null,
         child: SizedBox(

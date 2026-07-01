@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../widgets/board_grid_widget.dart';
 import '../../data/models/grid_node.dart';
@@ -15,9 +16,61 @@ class TableView extends StatefulWidget {
   State<TableView> createState() => _TableViewState();
 }
 
-class _TableViewState extends State<TableView> {
+class _TableViewState extends State<TableView> with SingleTickerProviderStateMixin {
   // 실제 게임 플레이 시 통신을 통해 업데이트되어야 할 상태값입니다.
   int _remainingCards = 30;
+
+  final TransformationController _transformationController = TransformationController();
+  AnimationController? _animationController;
+  Animation<Matrix4>? _animation;
+  Timer? _resetTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addListener(() {
+        _transformationController.value = _animation!.value;
+      });
+  }
+
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    _transformationController.dispose();
+    _resetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onInteractionEnd(ScaleEndDetails details) {
+    // 확대 비율이 1.0 미만(축소 상태)일 경우 3초 뒤 초기화 타이머 시작
+    if (_transformationController.value.getMaxScaleOnAxis() < 1.0) {
+      _resetTimer = Timer(const Duration(seconds: 3), () {
+        _animateReset();
+      });
+    }
+  }
+
+  void _onInteractionStart(ScaleStartDetails details) {
+    // 사용자가 다시 조작을 시작하면 타이머 취소
+    _resetTimer?.cancel();
+    if (_animationController?.isAnimating ?? false) {
+      _animationController?.stop();
+    }
+  }
+
+  void _animateReset() {
+    _animation = Matrix4Tween(
+      begin: _transformationController.value,
+      end: Matrix4.identity(),
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: Curves.easeOut,
+    ));
+    _animationController?.forward(from: 0);
+  }
 
   // 카드 더미를 탭했을 때 카드가 줄어드는 것을 시뮬레이션하기 위한 임시 함수
   void _simulateDrawCard() {
@@ -67,61 +120,46 @@ class _TableViewState extends State<TableView> {
           // board.png의 원본 해상도(1366x1107) 비율을 강제로 유지하여, 
           // 크롬 같이 가로로 긴 화면에서도 그리드가 정사각형으로 찌그러지지 않고 원래의 세로형 직사각형 모양을 유지하게 합니다.
           // InteractiveViewer를 추가하여 맵 스와이프 및 줌을 지원합니다.
-          InteractiveViewer(
-            panEnabled: true,
-            scaleEnabled: true,
-            minScale: 0.1,
-            maxScale: 4.0,
-            boundaryMargin: const EdgeInsets.all(2000), // 화면 밖으로 충분히 스와이프 가능하도록 여백 부여
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1393 / 1129,
-                child: Stack(
-                  children: [
-                  // 배경 이미지
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/phone_info/basic_image.png',
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-                  
-                  // 보드 격자
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      // 새 배경 이미지 전체를 12x7 가상 그리드로 꽉 채워서 사용합니다.
-                      final double leftPercent = 0.0;
-                      final double topPercent = 0.0;
-                      final double widthPercent = 1.0;
-                      final double heightPercent = 1.0;
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // 화면의 높이를 7칸으로 나누어 기본 세로 크기(cellHeight)를 정합니다.
+              // 카드의 가로/세로 비율이 2:3이므로, cellWidth는 강제로 cellHeight의 2/3로 맞춰 간격이 벌어지지 않게 합니다.
+              final cellHeight = constraints.maxHeight / 7;
+              final cellWidth = cellHeight * (2 / 3);
 
-                      final gridWidth = constraints.maxWidth * widthPercent;
-                      final gridHeight = constraints.maxHeight * heightPercent;
-                      final cellWidth = gridWidth / 12;
-                      final cellHeight = gridHeight / 7;
-
-                      return Stack(
-                        children: [
-                          Positioned(
-                            left: constraints.maxWidth * leftPercent,
-                            top: constraints.maxHeight * topPercent,
-                            width: gridWidth,
-                            height: gridHeight,
-                            child: BoardGridWidget(
-                              board: dummyBoard,
-                              goalCards: dummyGoalCards,
-                              cellWidth: cellWidth,
-                              cellHeight: cellHeight,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+              return InteractiveViewer(
+                transformationController: _transformationController,
+                onInteractionStart: _onInteractionStart,
+                onInteractionEnd: _onInteractionEnd,
+                panEnabled: true,
+                scaleEnabled: true,
+                minScale: 0.1,
+                maxScale: 4.0,
+                boundaryMargin: const EdgeInsets.all(3000), // 화면 밖으로 충분히 스와이프 가능하도록 여백 부여
+                child: Center(
+                  child: Stack(
+                    children: [
+                      // 배경 이미지 (동적 그리드가 확장될 때 타일처럼 무한 반복되도록 설정)
+                      Positioned.fill(
+                        child: Image.asset(
+                          'assets/phone_info/basic_image.png',
+                          repeat: ImageRepeat.repeat,
+                          fit: BoxFit.none,
+                        ),
+                      ),
+                      
+                      // 보드 격자 (동적으로 크기가 확장됨)
+                      BoardGridWidget(
+                        board: dummyBoard,
+                        goalCards: dummyGoalCards,
+                        cellWidth: cellWidth,
+                        cellHeight: cellHeight,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ),
+                ),
+              );
+            },
           ),
           // 3. 상단 중앙 덱 정보 HUD (스크린샷 매칭)
           SafeArea(
