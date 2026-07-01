@@ -121,54 +121,51 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 화면 양옆에 여백(Padding)을 32px(각 16px) 정도 둡니다.
-        final availableWidth = constraints.maxWidth - 32;
-
-        // 카드가 너무 많이 겹치지 않도록 카드 간격(Step)을 너비의 75%로 설정합니다. (25% 겹침)
-        final stepRatio = 0.75;
+        // 스크린샷처럼 화면 양옆에 여유로운 여백을 남기기 위해 부채꼴이 차지하는 최대 너비를 65%로 더 줄입니다.
+        final availableWidth = constraints.maxWidth * 0.65;
+        final stepRatio = 0.50; // 50% 겹침
         
-        // 전체 부채꼴 너비 = 첫 카드 1장 온전한 너비 + 나머지 카드(N-1장)들의 간격
-        // totalFanWidth = cardWidth + (cardCount - 1) * (cardWidth * stepRatio)
-        // 위 공식을 이용해 주어진 availableWidth에 딱 맞는 cardWidth를 역산합니다.
         final cardWidth = availableWidth / (1 + (cardCount - 1) * stepRatio);
         final cardHeight = cardWidth * 1.5;
 
         final cardStep = cardWidth * stepRatio;
         final totalFanWidth = cardWidth + (cardCount - 1) * cardStep;
         
-        // 부채꼴을 화면 중앙에 정렬하기 위한 시작 X 좌표
         final startX = (constraints.maxWidth - totalFanWidth) / 2;
 
-        // 전체 펼침 각도 (카드가 많을수록 넓어짐)
-        final totalSpread = 40.0; // 카드가 작아지면서 각도를 약간 넓혀 자연스럽게
+        // 스크린샷 기준: 양끝 카드가 상당히 많이 기울어져 있음 (약 45도 Spread)
+        final totalSpread = 45.0; 
         final angleStep = cardCount > 1 ? totalSpread / (cardCount - 1) : 0.0;
+        
+        // 스크린샷 기준: 중앙 카드가 화면 하단에서 꽤 높이 떠 있음
+        // 화면 높이의 약 22% 정도로 기본 높이를 설정합니다.
+        final baseBottom = constraints.maxHeight * 0.22;
 
         return Stack(
           clipBehavior: Clip.none,
           children: List.generate(cardCount, (index) {
             final isSelected = _selectedCardIndex == index;
 
-            // X축 위치 (1/10 겹침 스펙 유지)
             final xPos = startX + index * cardStep;
 
-            // 회전 각도
             final angle = cardCount > 1
                 ? (-totalSpread / 2 + angleStep * index)
                 : 0.0;
             final radians = angle * math.pi / 180;
 
-            // Y축 아치형 높이 계산 (양 끝 카드가 아래로 내려감)
             final normalizedPos = cardCount > 1
                 ? (index - (cardCount - 1) / 2).abs() / ((cardCount - 1) / 2)
                 : 0.0;
-            final archOffset = normalizedPos * normalizedPos * 40; 
             
-            // 팝업 효과: 탭하면 위로 솟아오름 (단, 부채꼴 정렬 X축은 그대로 유지)
+            // 스크린샷 기준: 양끝 카드가 역할 카드(빨간색) 부근까지 가파르게 떨어지는 가파른 아치
+            final archOffset = normalizedPos * normalizedPos * 110; 
+            
+            // 팝업 효과: 탭하면 위로 솟아오름
             final selectOffset = isSelected ? -60.0 : 0.0;
 
             return Positioned(
               left: xPos,
-              bottom: 40 - archOffset - selectOffset,
+              bottom: baseBottom - archOffset - selectOffset,
               child: Transform.rotate(
                 angle: radians,
                 alignment: Alignment.bottomCenter, // 하단을 기준으로 회전
