@@ -66,11 +66,18 @@ class _TableViewState extends State<TableView> {
           // 1 & 2. 원본 비율을 유지하는 게임 보드 영역
           // board.png의 원본 해상도(1366x1107) 비율을 강제로 유지하여, 
           // 크롬 같이 가로로 긴 화면에서도 그리드가 정사각형으로 찌그러지지 않고 원래의 세로형 직사각형 모양을 유지하게 합니다.
-          Center(
-            child: AspectRatio(
-              aspectRatio: 1393 / 1129,
-              child: Stack(
-                children: [
+          // InteractiveViewer를 추가하여 맵 스와이프 및 줌을 지원합니다.
+          InteractiveViewer(
+            panEnabled: true,
+            scaleEnabled: true,
+            minScale: 0.1,
+            maxScale: 4.0,
+            boundaryMargin: const EdgeInsets.all(2000), // 화면 밖으로 충분히 스와이프 가능하도록 여백 부여
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: 1393 / 1129,
+                child: Stack(
+                  children: [
                   // 배경 이미지
                   Positioned.fill(
                     child: Image.asset(
@@ -114,6 +121,7 @@ class _TableViewState extends State<TableView> {
                 ],
               ),
             ),
+          ),
           ),
           // 3. 상단 중앙 덱 정보 HUD (스크린샷 매칭)
           SafeArea(
