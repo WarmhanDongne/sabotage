@@ -335,16 +335,47 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     );
   }
 
-  /// 카드 선택 시 노출되는 간소화된 확인 버튼 (다크모드 스타일 배제)
-  Widget _buildConfirmButton() {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.amber[700], // 게임 테마에 맞는 노란색
-        foregroundColor: Colors.black,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      ),
-      onPressed: _dispatchAction,
-      child: const Text('이 카드 버리기', style: TextStyle(fontWeight: FontWeight.bold)),
+  Widget _buildActionButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber[700],
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+          onPressed: _useCard,
+          child: const Text('이 카드 사용하기', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 16),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red[700],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+          onPressed: _discardCard,
+          child: const Text('버리기', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPendingActionUI() {
+    return Column(
+      children: [
+        const Text(
+          '태블릿 화면에서 대상을 선택해주세요.',
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[700]),
+          onPressed: _cancelAction,
+          child: const Text('사용 취소', style: TextStyle(color: Colors.white)),
+        ),
+      ],
     );
   }
 
@@ -392,12 +423,53 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     });
   }
 
-  Future<void> _dispatchAction() async {
+  Future<void> _useCard() async {
     if (_csm.currentState != ControllerState.cardSelected) return;
     
-    setState(() {
-      _isPending = true;
-    });
+    setState(() => _isPending = true);
+    try {
+      final repo = context.read<GameRepository>();
+      final state = await repo.roomStream(widget.roomId).first;
+      if (state == null) throw Exception("State not found");
+      
+      final me = state.players.firstWhere((p) => p.id == widget.playerId);
+      final realCardId = me.handCardIds[_selectedCardIndex!];
+
+      await repo.setPendingAction(widget.roomId, widget.playerId, realCardId);
+      
+      if (mounted) {
+        setState(() {
+          _isPending = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isPending = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('동작 실패: $e')));
+    }
+  }
+
+  Future<void> _cancelAction() async {
+    setState(() => _isPending = true);
+    try {
+      final repo = context.read<GameRepository>();
+      await repo.clearPendingAction(widget.roomId, widget.playerId);
+      
+      if (mounted) {
+        setState(() {
+          _isPending = false;
+          _csm = const ControllerStateMachine();
+          _selectedCardIndex = null;
+        });
+      }
+    } catch (e) {
+      setState(() => _isPending = false);
+    }
+  }
+
+  Future<void> _discardCard() async {
+    if (_csm.currentState != ControllerState.cardSelected) return;
+    
+    setState(() => _isPending = true);
     
     try {
       final repo = context.read<GameRepository>();
@@ -420,7 +492,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
       setState(() => _isPending = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('동작 실패: $e')),
+          SnackBar(content: Text('버리기 실패: $e')),
         );
       }
     }

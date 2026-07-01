@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../widgets/board_grid_widget.dart';
 import '../../data/game_state.dart';
 import '../../data/repositories/game_repository.dart';
+import '../../data/models/card.dart';
+import '../../logic/validator.dart';
 /// 호스트(태블릿) 뷰어.
 /// 기존 다크모드/커스텀 디자인 완전 폐기.
 /// 오리지널 에셋(board.png) 배경 적용 및 Ipad.png 기준의 사이드바/카드 배치 준수.
@@ -87,6 +89,34 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
           final goalCards = state.goalCards;
           final remainingCards = state.deck.length;
 
+          // Pending Action 감지 및 유효한 좌표 계산
+          Set<String>? validCoords;
+          if (state.pendingAction != null && state.pendingAction!['type'] == 'path') {
+            validCoords = {};
+            final card = Card(
+              id: state.pendingAction!['cardId'],
+              type: CardType.path,
+              hasTop: true, hasBottom: true, hasLeft: true, hasRight: true, hasCenter: true,
+            );
+            
+            // 현재 보드의 모든 노드 범위에서 한 칸씩 더 넓게 탐색
+            int minX = 0, maxX = 11, minY = 0, maxY = 6;
+            for (var node in [...board, ...goalCards]) {
+              if (node.x < minX) minX = node.x;
+              if (node.x > maxX) maxX = node.x;
+              if (node.y < minY) minY = node.y;
+              if (node.y > maxY) maxY = node.y;
+            }
+            
+            for (int x = minX - 1; x <= maxX + 1; x++) {
+              for (int y = minY - 1; y <= maxY + 1; y++) {
+                if (Validator.canPlaceCard(board, card, x, y)) {
+                  validCoords.add('$x,$y');
+                }
+              }
+            }
+          }
+
           return Stack(
             children: [
               // 1 & 2. 원본 비율을 유지하는 게임 보드 영역
@@ -122,6 +152,26 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                             goalCards: goalCards,
                             cellWidth: cellWidth,
                             cellHeight: cellHeight,
+                            validOverlayCoords: validCoords,
+                            onGridTap: (x, y) async {
+                              if (validCoords != null && validCoords!.contains('$x,$y')) {
+                                try {
+                                  await context.read<GameRepository>().playPathCard(
+                                    widget.roomId,
+                                    state.pendingAction!['playerId'],
+                                    state.pendingAction!['cardId'],
+                                    x,
+                                    y,
+                                  );
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('카드 놓기 실패: $e')),
+                                    );
+                                  }
+                                }
+                              }
+                            },
                           ),
                         ],
                       ),

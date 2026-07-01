@@ -285,6 +285,60 @@ class GameRepository {
     });
   }
 
+  // ──── 크로스 디바이스 상호작용 (Pending Action) ────
+
+  // 모바일 기기에서 "사용 준비" 누를 때 호출
+  Future<void> setPendingAction(String roomId, String playerId, String cardId) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) throw Exception("Room does not exist!");
+      
+      final state = GameState.fromJson(snapshot.data()!);
+      if (state.isGameOver) throw Exception("Game is already over");
+      if (state.currentTurnPlayerId != playerId) throw Exception("Not your turn");
+      
+      final playerIndex = state.players.indexWhere((p) => p.id == playerId);
+      if (!state.players[playerIndex].handCardIds.contains(cardId)) throw Exception("Card not in hand");
+
+      final newState = GameState(
+        roomId: state.roomId, players: state.players, currentTurnPlayerId: state.currentTurnPlayerId,
+        board: state.board, deck: state.deck, discardPile: state.discardPile, goalCards: state.goalCards,
+        currentRound: state.currentRound, isGameOver: state.isGameOver, goldDistribution: state.goldDistribution,
+        winner: state.winner,
+        pendingAction: {
+          'playerId': playerId,
+          'cardId': cardId,
+          // MVP용: 임시 파싱
+          'type': cardId.startsWith('path') ? 'path' : (cardId.startsWith('action') ? 'action' : 'unknown')
+        }
+      );
+      transaction.update(docRef, newState.toJson());
+    });
+  }
+
+  // "사용 취소" 누를 때 호출
+  Future<void> clearPendingAction(String roomId, String playerId) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) throw Exception("Room does not exist!");
+      
+      final state = GameState.fromJson(snapshot.data()!);
+      if (state.pendingAction?['playerId'] != playerId) return; // 본인의 액션만 취소 가능
+
+      final newState = GameState(
+        roomId: state.roomId, players: state.players, currentTurnPlayerId: state.currentTurnPlayerId,
+        board: state.board, deck: state.deck, discardPile: state.discardPile, goalCards: state.goalCards,
+        currentRound: state.currentRound, isGameOver: state.isGameOver, goldDistribution: state.goldDistribution,
+        winner: state.winner,
+        pendingAction: null,
+      );
+      transaction.update(docRef, newState.toJson());
+    });
+  }
+
+  // 내부 헬퍼: 턴 종료
   void _advanceTurn(GameState state, int playerIndex, String usedCardId, List<GridNode> newBoard, List<GridNode> newGoalCards, String? winner, Transaction transaction, DocumentReference docRef) {
     final player = state.players[playerIndex];
     List<String> newHand = List.from(player.handCardIds)..remove(usedCardId);
@@ -317,6 +371,7 @@ class GameRepository {
       isGameOver: isGameOver,
       winner: finalWinner,
       goldDistribution: state.goldDistribution,
+      pendingAction: null,
     );
 
     transaction.update(docRef, newState.toJson());

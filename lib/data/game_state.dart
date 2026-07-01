@@ -22,6 +22,9 @@ class GameState {
   final Map<String, int> goldDistribution; // playerId : 금덩이 개수
   final String? winner;
 
+  // 크로스 디바이스 상호작용용 대기 상태 (모바일 -> 태블릿)
+  final Map<String, dynamic>? pendingAction;
+
   const GameState({
     required this.roomId,
     required this.players,
@@ -34,6 +37,7 @@ class GameState {
     this.isGameOver = false,
     this.goldDistribution = const {},
     this.winner,
+    this.pendingAction,
   });
 
   Map<String, dynamic> toJson() {
@@ -49,6 +53,7 @@ class GameState {
       'isGameOver': isGameOver,
       'goldDistribution': goldDistribution,
       'winner': winner,
+      'pendingAction': pendingAction,
     };
   }
 
@@ -65,6 +70,7 @@ class GameState {
       isGameOver: json['isGameOver'] as bool? ?? false,
       goldDistribution: Map<String, int>.from(json['goldDistribution'] as Map? ?? {}),
       winner: json['winner'] as String?,
+      pendingAction: json['pendingAction'] as Map<String, dynamic>?,
     );
   }
 }
