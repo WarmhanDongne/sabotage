@@ -54,36 +54,29 @@ class TableView extends StatelessWidget {
             ),
           ),
           
-          // 2. 메인 게임 보드
+          // 2. 메인 게임 보드 (화면 전체 9x5 비율 채우기)
           SafeArea(
-            child: Row(
-              children: [
-                // 왼쪽 9x5 보드 영역
-                Expanded(
-                  flex: 75,
-                  child: Center(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // 9열 5행 기준 정사각형 슬롯 크기 계산
-                        final cardWidth = constraints.maxWidth / 9;
-                        final cardHeight = constraints.maxHeight / 5;
-                        final cardSize = cardWidth < cardHeight * 0.7 ? cardWidth : cardHeight * 0.7;
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 화면 전체를 9열 5행으로 정확히 나눕니다.
+                final cellWidth = constraints.maxWidth / 9;
+                final cellHeight = constraints.maxHeight / 5;
 
-                        return BoardGridWidget(
-                          board: dummyBoard,
-                          goalCards: dummyGoalCards,
-                          cardSize: cardSize,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                // 오른쪽 사이드바 영역
-                Expanded(
-                  flex: 25,
-                  child: _buildSidebarOverlay(),
-                ),
-              ],
+                return BoardGridWidget(
+                  board: dummyBoard,
+                  goalCards: dummyGoalCards,
+                  cellWidth: cellWidth,
+                  cellHeight: cellHeight,
+                );
+              },
+            ),
+          ),
+
+          // 3. 상단 중앙 덱 정보 HUD (스크린샷 매칭)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: _buildTopHUD(),
             ),
           ),
         ],
@@ -91,86 +84,57 @@ class TableView extends StatelessWidget {
     );
   }
 
-  /// Ipad.png의 오른쪽 사이드바 영역 구조
-  Widget _buildSidebarOverlay() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        // 상단 DRAW DECK
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'DRAW DECK',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-                shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+  /// 스크린샷 상단 중앙의 하얀 반투명 박스 (남은 카드 개수 등 표시)
+  Widget _buildTopHUD() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 왼쪽 덱 아이콘 (임시 에셋 연결, 스크린샷의 카드 뒷면 모양)
+          Container(
+            width: 24,
+            height: 36,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(2),
+              image: const DecorationImage(
+                image: AssetImage('assets/board_info/010_red/010_red_01.png'), // 임시 카드 뒷면
+                fit: BoxFit.cover,
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber[400],
-                borderRadius: BorderRadius.circular(4),
-                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4, offset: Offset(2, 2))],
-              ),
-              child: const Text(
-                '42 REMAINING',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
-              ),
+          ),
+          const SizedBox(width: 16),
+          // 중앙 "X 30" 텍스트
+          const Text(
+            'X 30',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 28,
+              fontWeight: FontWeight.w300, // 얇은 폰트 스타일
+              letterSpacing: 1.2,
             ),
-          ],
-        ),
-        
-        // 중앙 TURN TIME
-        const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'TURN TIME',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-                shadows: [Shadow(color: Colors.black, blurRadius: 4)],
-              ),
-            ),
-            SizedBox(height: 16),
-            SizedBox(
-              width: 80,
-              height: 80,
-              child: CircularProgressIndicator(
-                value: 0.6,
-                color: Colors.amber,
-                strokeWidth: 8,
-              ),
-            ),
-          ],
-        ),
-
-        // 하단 DRAW DECK (Discard Pile)
-        const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'DISCARD',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-                shadows: [Shadow(color: Colors.black, blurRadius: 4)],
-              ),
-            ),
-            SizedBox(height: 80),
-          ],
-        ),
-      ],
+          ),
+          const SizedBox(width: 32),
+          // 오른쪽 달/반달 모양 아이콘 (임시로 Icon 사용)
+          const Icon(
+            Icons.nightlight_round,
+            color: Colors.black,
+            size: 28,
+          ),
+        ],
+      ),
     );
   }
 }

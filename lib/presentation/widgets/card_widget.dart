@@ -7,13 +7,15 @@ import '../../data/models/card.dart' as game_card;
 class CardWidget extends StatefulWidget {
   final game_card.Card? card;
   final bool isRevealed;
-  final double size;
+  final double? width;
+  final double? height;
 
   const CardWidget({
     super.key,
     required this.card,
     this.isRevealed = true,
-    this.size = 64.0,
+    this.width,
+    this.height,
   });
 
   @override
@@ -94,8 +96,8 @@ class _CardWidgetState extends State<CardWidget> with SingleTickerProviderStateM
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: SizedBox(
-              width: widget.size,
-              height: widget.size,
+              width: widget.width,
+              height: widget.height,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
