@@ -56,4 +56,32 @@ class Player {
       isTrapped: isTrapped ?? this.isTrapped,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'role': role?.name,
+      'handCardIds': handCardIds,
+      'isPickaxeBroken': isPickaxeBroken,
+      'isLanternBroken': isLanternBroken,
+      'isCartBroken': isCartBroken,
+      'isTrapped': isTrapped,
+    };
+  }
+
+  factory Player.fromJson(Map<String, dynamic> json) {
+    return Player(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      role: json['role'] != null 
+          ? PlayerRole.values.firstWhere((e) => e.name == json['role'], orElse: () => PlayerRole.miner)
+          : null,
+      handCardIds: (json['handCardIds'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      isPickaxeBroken: json['isPickaxeBroken'] as bool? ?? false,
+      isLanternBroken: json['isLanternBroken'] as bool? ?? false,
+      isCartBroken: json['isCartBroken'] as bool? ?? false,
+      isTrapped: json['isTrapped'] as bool? ?? false,
+    );
+  }
 }

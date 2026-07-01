@@ -80,4 +80,36 @@ class Card {
       hasCrystal: hasCrystal ?? this.hasCrystal,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type.name,
+      'hasTop': hasTop,
+      'hasRight': hasRight,
+      'hasBottom': hasBottom,
+      'hasLeft': hasLeft,
+      'hasCenter': hasCenter,
+      'isGold': isGold,
+      'actionType': actionType.name,
+      'doorColor': doorColor,
+      'hasCrystal': hasCrystal,
+    };
+  }
+
+  factory Card.fromJson(Map<String, dynamic> json) {
+    return Card(
+      id: json['id'] as String,
+      type: CardType.values.firstWhere((e) => e.name == json['type'], orElse: () => CardType.path),
+      hasTop: json['hasTop'] as bool? ?? false,
+      hasRight: json['hasRight'] as bool? ?? false,
+      hasBottom: json['hasBottom'] as bool? ?? false,
+      hasLeft: json['hasLeft'] as bool? ?? false,
+      hasCenter: json['hasCenter'] as bool? ?? false,
+      isGold: json['isGold'] as bool? ?? false,
+      actionType: ActionType.values.firstWhere((e) => e.name == json['actionType'], orElse: () => ActionType.none),
+      doorColor: json['doorColor'] as String?,
+      hasCrystal: json['hasCrystal'] as bool? ?? false,
+    );
+  }
 }

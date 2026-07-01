@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/board_grid_widget.dart';
-import '../../data/models/grid_node.dart';
-import '../../data/models/card.dart' as game_card;
-
+import '../../data/game_state.dart';
+import '../../data/repositories/game_repository.dart';
 /// 호스트(태블릿) 뷰어.
 /// 기존 다크모드/커스텀 디자인 완전 폐기.
 /// 오리지널 에셋(board.png) 배경 적용 및 Ipad.png 기준의 사이드바/카드 배치 준수.
@@ -17,9 +17,6 @@ class TableView extends StatefulWidget {
 }
 
 class _TableViewState extends State<TableView> with SingleTickerProviderStateMixin {
-  // 실제 게임 플레이 시 통신을 통해 업데이트되어야 할 상태값입니다.
-  int _remainingCards = 30;
-
   final TransformationController _transformationController = TransformationController();
   AnimationController? _animationController;
   Animation<Matrix4>? _animation;
@@ -72,111 +69,95 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
     _animationController?.forward(from: 0);
   }
 
-  // 카드 더미를 탭했을 때 카드가 줄어드는 것을 시뮬레이션하기 위한 임시 함수
-  void _simulateDrawCard() {
-    if (_remainingCards > 0) {
-      setState(() {
-        _remainingCards--;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // 12x7 그리드 기준: 시작은 (1, 3), 도착은 (9, 1), (9, 3), (9, 5)
-    final List<GridNode> dummyBoard = [
-      const GridNode(
-        x: 1,
-        y: 3,
-        card: game_card.Card(id: 'start', type: game_card.CardType.start),
-      ),
-    ];
-    
-    final List<GridNode> dummyGoalCards = [
-      const GridNode(
-        x: 9,
-        y: 1,
-        card: game_card.Card(id: 'goal1', type: game_card.CardType.goal),
-        isRevealed: false,
-      ),
-      const GridNode(
-        x: 9,
-        y: 3,
-        card: game_card.Card(id: 'goal2', type: game_card.CardType.goal),
-        isRevealed: false,
-      ),
-      const GridNode(
-        x: 9,
-        y: 5,
-        card: game_card.Card(id: 'goal3', type: game_card.CardType.goal),
-        isRevealed: false,
-      ),
-    ];
-
     return Scaffold(
-      body: Stack(
-        children: [
-          // 1 & 2. 원본 비율을 유지하는 게임 보드 영역
-          // board.png의 원본 해상도(1366x1107) 비율을 강제로 유지하여, 
-          // 크롬 같이 가로로 긴 화면에서도 그리드가 정사각형으로 찌그러지지 않고 원래의 세로형 직사각형 모양을 유지하게 합니다.
-          // InteractiveViewer를 추가하여 맵 스와이프 및 줌을 지원합니다.
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // 화면의 높이를 7칸으로 나누어 기본 세로 크기(cellHeight)를 정합니다.
-              // 카드의 가로/세로 비율이 2:3이므로, cellWidth는 강제로 cellHeight의 2/3로 맞춰 간격이 벌어지지 않게 합니다.
-              final cellHeight = constraints.maxHeight / 7;
-              final cellWidth = cellHeight * (2 / 3);
+      body: StreamBuilder<GameState?>(
+        stream: context.read<GameRepository>().roomStream(widget.roomId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text("방 정보를 불러올 수 없습니다."));
+          }
 
-              return InteractiveViewer(
-                transformationController: _transformationController,
-                onInteractionStart: _onInteractionStart,
-                onInteractionEnd: _onInteractionEnd,
-                panEnabled: true,
-                scaleEnabled: true,
-                minScale: 0.1,
-                maxScale: 4.0,
-                boundaryMargin: const EdgeInsets.all(3000), // 화면 밖으로 충분히 스와이프 가능하도록 여백 부여
-                child: Center(
-                  child: Stack(
-                    children: [
-                      // 배경 이미지 (동적 그리드가 확장될 때 타일처럼 무한 반복되도록 설정)
-                      Positioned.fill(
-                        child: Image.asset(
-                          'assets/phone_info/basic_image.png',
-                          repeat: ImageRepeat.repeat,
-                          fit: BoxFit.none,
-                        ),
+          final state = snapshot.data!;
+          final board = state.board;
+          final goalCards = state.goalCards;
+          final remainingCards = state.deck.length;
+
+          return Stack(
+            children: [
+              // 1 & 2. 원본 비율을 유지하는 게임 보드 영역
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cellHeight = constraints.maxHeight / 7;
+                  final cellWidth = cellHeight * (2 / 3);
+
+                  return InteractiveViewer(
+                    transformationController: _transformationController,
+                    onInteractionStart: _onInteractionStart,
+                    onInteractionEnd: _onInteractionEnd,
+                    panEnabled: true,
+                    scaleEnabled: true,
+                    minScale: 0.1,
+                    maxScale: 4.0,
+                    boundaryMargin: const EdgeInsets.all(3000), // 화면 밖으로 충분히 스와이프 가능하도록 여백 부여
+                    child: Center(
+                      child: Stack(
+                        children: [
+                          // 배경 이미지
+                          Positioned.fill(
+                            child: Image.asset(
+                              'assets/phone_info/basic_image.png',
+                              repeat: ImageRepeat.repeat,
+                              fit: BoxFit.none,
+                            ),
+                          ),
+                          
+                          // 보드 격자
+                          BoardGridWidget(
+                            board: board,
+                            goalCards: goalCards,
+                            cellWidth: cellWidth,
+                            cellHeight: cellHeight,
+                          ),
+                        ],
                       ),
-                      
-                      // 보드 격자 (동적으로 크기가 확장됨)
-                      BoardGridWidget(
-                        board: dummyBoard,
-                        goalCards: dummyGoalCards,
-                        cellWidth: cellWidth,
-                        cellHeight: cellHeight,
-                      ),
-                    ],
+                    ),
+                  );
+                },
+              ),
+              // 3. 상단 중앙 덱 정보 HUD (스크린샷 매칭)
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: _buildTopHUD(remainingCards),
+                ),
+              ),
+              // 승리 알림 패널
+              if (state.isGameOver)
+                Container(
+                  color: Colors.black54,
+                  child: Center(
+                    child: Text(
+                      '게임 종료! 승리: ${state.winner == 'miner' ? '광부' : '방해꾼'}',
+                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.amber),
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
-          // 3. 상단 중앙 덱 정보 HUD (스크린샷 매칭)
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: _buildTopHUD(),
-            ),
-          ),
-        ],
+            ],
+          );
+        }
       ),
     );
   }
 
   /// 스크린샷 상단 중앙의 하얀 반투명 박스 (남은 카드 개수 등 표시)
-  Widget _buildTopHUD() {
+  Widget _buildTopHUD(int remainingCards) {
     return GestureDetector(
-      onTap: _simulateDrawCard, // 테스트를 위해 탭 시 카드 줄어듦 구현
+      onTap: () {}, // 실제 드로우 로직은 엔진에서 처리
       child: Container(
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -209,7 +190,7 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
             const SizedBox(width: 16),
             // 중앙 "X 30" 텍스트 (상태 연동)
             Text(
-              'X $_remainingCards',
+              'X $remainingCards',
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 28,

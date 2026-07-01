@@ -49,7 +49,7 @@ class Validator {
     // (시작점에서 뻗어나간 굴과 이어져야만 카드를 놓을 수 있음)
     // 가상의 보드를 만들어서 테스트
     List<GridNode> testBoard = List.from(board)..add(GridNode(x: targetX, y: targetY, card: newCard));
-    return _isConnectedToStart(testBoard, targetX, targetY);
+    return isConnectedToStart(testBoard, targetX, targetY);
   }
 
   static GridNode? _getNodeAt(List<GridNode> board, int x, int y) {
@@ -61,7 +61,7 @@ class Validator {
   }
 
   /// BFS를 사용하여 특정 좌표(x,y)가 시작점(Start)과 굴로 연결되어 있는지 확인합니다.
-  static bool _isConnectedToStart(List<GridNode> board, int targetX, int targetY) {
+  static bool isConnectedToStart(List<GridNode> board, int targetX, int targetY) {
     // 시작점 찾기
     final startNode = board.firstWhere(
       (node) => node.card.type == CardType.start,

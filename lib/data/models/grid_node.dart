@@ -28,4 +28,22 @@ class GridNode {
       isRevealed: isRevealed ?? this.isRevealed,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'x': x,
+      'y': y,
+      'card': card.toJson(),
+      'isRevealed': isRevealed,
+    };
+  }
+
+  factory GridNode.fromJson(Map<String, dynamic> json) {
+    return GridNode(
+      x: json['x'] as int,
+      y: json['y'] as int,
+      card: Card.fromJson(json['card'] as Map<String, dynamic>),
+      isRevealed: json['isRevealed'] as bool? ?? true,
+    );
+  }
 }

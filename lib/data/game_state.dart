@@ -20,6 +20,7 @@ class GameState {
   final int currentRound;
   final bool isGameOver;
   final Map<String, int> goldDistribution; // playerId : 금덩이 개수
+  final String? winner;
 
   const GameState({
     required this.roomId,
@@ -32,7 +33,40 @@ class GameState {
     this.currentRound = 1,
     this.isGameOver = false,
     this.goldDistribution = const {},
+    this.winner,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'roomId': roomId,
+      'players': players.map((p) => p.toJson()).toList(),
+      'currentTurnPlayerId': currentTurnPlayerId,
+      'board': board.map((n) => n.toJson()).toList(),
+      'deck': deck.map((c) => c.toJson()).toList(),
+      'discardPile': discardPile.map((c) => c.toJson()).toList(),
+      'goalCards': goalCards.map((n) => n.toJson()).toList(),
+      'currentRound': currentRound,
+      'isGameOver': isGameOver,
+      'goldDistribution': goldDistribution,
+      'winner': winner,
+    };
+  }
+
+  factory GameState.fromJson(Map<String, dynamic> json) {
+    return GameState(
+      roomId: json['roomId'] as String,
+      players: (json['players'] as List<dynamic>).map((e) => Player.fromJson(e as Map<String, dynamic>)).toList(),
+      currentTurnPlayerId: json['currentTurnPlayerId'] as String,
+      board: (json['board'] as List<dynamic>).map((e) => GridNode.fromJson(e as Map<String, dynamic>)).toList(),
+      deck: (json['deck'] as List<dynamic>).map((e) => Card.fromJson(e as Map<String, dynamic>)).toList(),
+      discardPile: (json['discardPile'] as List<dynamic>).map((e) => Card.fromJson(e as Map<String, dynamic>)).toList(),
+      goalCards: (json['goalCards'] as List<dynamic>).map((e) => GridNode.fromJson(e as Map<String, dynamic>)).toList(),
+      currentRound: json['currentRound'] as int? ?? 1,
+      isGameOver: json['isGameOver'] as bool? ?? false,
+      goldDistribution: Map<String, int>.from(json['goldDistribution'] as Map? ?? {}),
+      winner: json['winner'] as String?,
+    );
+  }
 }
 
 // 호스트 뷰어용 상태 (역할, 패 등 은닉)

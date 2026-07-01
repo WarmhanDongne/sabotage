@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:provider/provider.dart';
 import '../../main.dart';
-
+import '../../data/repositories/game_repository.dart';
 /// 방 생성 및 입장을 담당하는 로비 화면.
 /// DESIGN.md 기준: 골드/브라스 광산 테마
 class LobbyView extends StatefulWidget {
@@ -240,14 +241,28 @@ class _LobbyViewState extends State<LobbyView> {
     );
   }
 
-  void _handleAction() {
-    // Firestore 연동 전 임시 화면 전환 테스트용 코드
+  Future<void> _handleAction() async {
+    final repo = context.read<GameRepository>();
+    
     if (_isHost) {
-      Navigator.pushNamed(context, '/table?room=ROOM123');
+      // 방 생성 로직
+      final roomId = 'ROOM123';
+      final hostId = 'host_123';
+      
+      // MVP 테스트용 임시 플레이어 3명 하드코딩
+      final playerIds = ['P1', 'P2', 'P3'];
+      
+      await repo.createRoom(roomId, hostId, playerIds);
+      
+      if (mounted) {
+        Navigator.pushNamed(context, '/table?room=$roomId');
+      }
     } else {
       final roomCode = _roomCodeController.text.trim();
       final nickname = _nicknameController.text.trim();
       if (roomCode.isEmpty || nickname.isEmpty) return;
+      
+      // 플레이어는 하드코딩된 P1으로 입장 (MVP 테스트용)
       Navigator.pushNamed(context, '/player?room=$roomCode&id=P1');
     }
   }

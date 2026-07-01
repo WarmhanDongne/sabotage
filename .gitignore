@@ -53,3 +53,23 @@ ios/Flutter/Generated.xcconfig
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Gemini IDE & Agents
+.agents/
+
+# IDE Configuration
+*.iml
+
+# Flutter project metadata
+.metadata
+
+# Firebase Options (API keys)
+lib/firebase_options.dart
+
+# Flutter Platform Folders (MVP 테스트 중 제외)
+android/
+ios/
+web/
+windows/
+macos/
+linux/

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'presentation/router.dart';
+import 'data/repositories/auth_repository.dart';
+import 'data/repositories/game_repository.dart';
 
 // DESIGN.md 기반 색상 토큰
 class SabotageColors {
@@ -42,8 +47,27 @@ class SabotageColors {
   static const goldGlow = Color(0x66753401); // rgba(117, 52, 1, 0.4)
 }
 
-void main() {
-  runApp(const SabotageApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Firebase 초기화 (flutterfire configure를 통해 생성된 옵션 사용)
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // 익명 로그인 수행
+  final authRepo = AuthRepository();
+  await authRepo.signInAnonymously();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<AuthRepository>.value(value: authRepo),
+        Provider<GameRepository>(create: (_) => GameRepository()),
+      ],
+      child: const SabotageApp(),
+    ),
+  );
 }
 
 class SabotageApp extends StatelessWidget {

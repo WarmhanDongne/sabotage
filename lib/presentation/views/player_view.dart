@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
 import '../../logic/controller_state_machine.dart';
+import '../../data/game_state.dart';
+import '../../data/models/player.dart';
+import '../../data/repositories/game_repository.dart';
 
 /// 클라이언트(모바일) 뷰.
 /// 기존 다크모드/커스텀 디자인 완전 폐기.
@@ -77,47 +81,80 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AbsorbPointer(
-        absorbing: _isPending,
-        child: Stack(
-          children: [
-            // 1. 오리지널 대리석 배경 (다크모드/비네팅/커스텀 컬러 모두 배제)
-            Positioned.fill(
-              child: Image.asset(
-                'assets/phone_info/basic_image.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-            
-            // 2. 메인 게임 콘텐츠 (카드 부채꼴 배치)
-            SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 20), // 상단 여백
-                  // 확정 버튼 (선택 시에만 노출되도록 간소화)
-                  if (_csm.currentState == ControllerState.targetSelected)
-                    _buildConfirmButton(),
-                  
-                  // 부채꼴 카드 영역
-                  Expanded(child: _buildFanCards()),
-                ],
-              ),
-            ),
+      body: StreamBuilder<GameState?>(
+        stream: context.read<GameRepository>().roomStream(widget.roomId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text("방 정보를 불러올 수 없습니다."));
+          }
 
-            // 3. 역할 카드 (초기 뒷면, 탭 시 팝업 및 뒤집기)
-            if (!_identityRevealed) _buildIdentityCardTrigger(),
-            
-            if (_isPending) _buildPendingOverlay(),
-            if (_identityRevealed) _buildIdentityOverlay(),
-          ],
-        ),
+          final state = snapshot.data!;
+          final meIndex = state.players.indexWhere((p) => p.id == widget.playerId);
+          if (meIndex == -1) return const Center(child: Text("플레이어를 찾을 수 없습니다."));
+
+          final me = state.players[meIndex];
+          final isMyTurn = state.currentTurnPlayerId == widget.playerId;
+          
+          // 패 업데이트 (여기서는 에셋 이름 매핑을 위해 더미 대신 빈칸 또는 실제 매핑)
+          // MVP용: 임시로 더미 이미지를 카드 ID 해시 기반으로 선택하게 함
+          final handCardIds = me.handCardIds;
+          final currentHandImages = handCardIds.map((id) {
+            final hash = id.hashCode.abs();
+            return _handCardImages[hash % _handCardImages.length];
+          }).toList();
+
+          return AbsorbPointer(
+            absorbing: _isPending || !isMyTurn,
+            child: Stack(
+              children: [
+                // 1. 오리지널 대리석 배경 (다크모드/비네팅/커스텀 컬러 모두 배제)
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/phone_info/basic_image.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                
+                // 2. 메인 게임 콘텐츠 (카드 부채꼴 배치)
+                SafeArea(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20), // 상단 여백
+                      // 현재 턴 알림 표시
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        color: isMyTurn ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5),
+                        child: Text(isMyTurn ? "내 턴입니다!" : "상대방 턴을 기다려주세요", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                      ),
+                      // 확정 버튼 (선택 시에만 노출되도록 간소화)
+                      if (_csm.currentState == ControllerState.targetSelected && isMyTurn)
+                        _buildConfirmButton(),
+                      
+                      // 부채꼴 카드 영역
+                      Expanded(child: _buildFanCards(currentHandImages)),
+                    ],
+                  ),
+                ),
+
+                // 3. 역할 카드 (초기 뒷면, 탭 시 팝업 및 뒤집기)
+                if (!_identityRevealed) _buildIdentityCardTrigger(),
+                
+                if (_isPending) _buildPendingOverlay(),
+                if (_identityRevealed) _buildIdentityOverlay(me.role),
+              ],
+            ),
+          );
+        }
       ),
     );
   }
 
   /// 부채꼴(Fan) 카드 배치 — 정확히 너비의 1/10만 겹침
-  Widget _buildFanCards() {
-    final cardCount = _handCardImages.length;
+  Widget _buildFanCards(List<String> currentHandImages) {
+    final cardCount = currentHandImages.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -189,7 +226,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: Image.asset(
-                        _handCardImages[index],
+                        currentHandImages[index],
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -239,7 +276,11 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   }
 
   /// Identity 오버레이: 탭 시 화면 중앙에 올라오며 뒤집어짐
-  Widget _buildIdentityOverlay() {
+  Widget _buildIdentityOverlay(PlayerRole? role) {
+    final frontImage = role == PlayerRole.miner 
+        ? 'assets/board_info/002_dwarves/002_dwarves_01.png'
+        : 'assets/board_info/002_dwarves/002_dwarves_02.png'; // 더미
+
     return GestureDetector(
       onTap: _dismissIdentity,
       child: Container(
@@ -280,7 +321,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.asset(
-                        showFront ? _identityFrontImage : _identityBackImage,
+                        showFront ? frontImage : _identityBackImage,
                         fit: BoxFit.cover,
                       ),
                     ),
