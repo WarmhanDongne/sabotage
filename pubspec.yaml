@@ -36,16 +36,10 @@ flutter:
   assets:
     - assets/board_info/001_action/
     - assets/board_info/002_dwarves/
-    - assets/board_info/003_mixed/
+    - assets/board_info/003_gold_card/
     - assets/board_info/004_path/
-    - assets/board_info/005_path/
-    - assets/board_info/006_path/
-    - assets/board_info/007_path/
-    - assets/board_info/008_cave_action/
-    - assets/board_info/009_cave_sword/
-    - assets/board_info/010_red/
-    - assets/board_info/011_yellow/
-    - assets/board_info/012_black/
+    - assets/board_info/005_start_and_end_point_card/
+    - assets/board_info/006_card_back_side/
     - assets/phone_info/
     - assets/start_the_game/
     - assets/using_loadcard_/

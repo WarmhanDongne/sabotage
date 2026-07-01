@@ -39,7 +39,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
 
   // 역할 카드 이미지
   final String _identityFrontImage = 'assets/board_info/002_dwarves/002_dwarves_01.png';
-  final String _identityBackImage = 'assets/board_info/010_red/010_red_01.png'; // 빨간 뒷면
+  static const String _identityBackImage = 'assets/board_info/006_card_back_side/010_red_01.png'; // 빨간 뒷면
 
   @override
   void initState() {
@@ -306,7 +306,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   Widget _buildIdentityOverlay(PlayerRole? role) {
     final frontImage = role == PlayerRole.miner 
         ? 'assets/board_info/002_dwarves/002_dwarves_01.png'
-        : 'assets/board_info/002_dwarves/002_dwarves_02.png'; // 더미
+        : 'assets/board_info/002_dwarves/002_dwarves_03.png'; 
 
     return GestureDetector(
       onTap: _dismissIdentity,

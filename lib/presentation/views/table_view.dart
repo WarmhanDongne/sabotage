@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../data/models/player.dart';
+import '../../data/models/card_database.dart';
 import '../widgets/board_grid_widget.dart';
 import '../../data/game_state.dart';
 import '../../data/repositories/game_repository.dart';
 import '../../data/models/card.dart' as game_card;
 import '../../logic/validator.dart';
+
 /// 호스트(태블릿) 뷰어.
 /// 기존 다크모드/커스텀 디자인 완전 폐기.
 /// 오리지널 에셋(board.png) 배경 적용 및 Ipad.png 기준의 사이드바/카드 배치 준수.
@@ -96,46 +99,33 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
             String pType = state.pendingAction!['type'];
             String cId = state.pendingAction!['cardId'];
 
-            if (pType == 'path') {
-              bool top = true, right = true, bottom = true, left = true, center = true;
-              final parts = cId.split('_');
-              if (parts.length >= 3 && parts[1].length == 5) {
-                final shapeStr = parts[1];
-                top = shapeStr[0] == '1';
-                right = shapeStr[1] == '1';
-                bottom = shapeStr[2] == '1';
-                left = shapeStr[3] == '1';
-                center = shapeStr[4] == '1';
-              }
-              final card = game_card.Card(
-                id: cId, type: game_card.CardType.path,
-                hasTop: top, hasBottom: bottom, hasLeft: left, hasRight: right, hasCenter: center,
-              );
-              
-              int minX = 0, maxX = 11, minY = 0, maxY = 6;
-              for (var node in [...board, ...goalCards]) {
-                if (node.x < minX) minX = node.x;
-                if (node.x > maxX) maxX = node.x;
-                if (node.y < minY) minY = node.y;
-                if (node.y > maxY) maxY = node.y;
-              }
-              for (int x = minX - 1; x <= maxX + 1; x++) {
-                for (int y = minY - 1; y <= maxY + 1; y++) {
-                  if (Validator.canPlaceCard(board, card, x, y)) {
-                    validCoords.add('$x,$y');
+            final card = CardDatabase.getCardById(cId);
+            if (card != null) {
+              if (card.type == game_card.CardType.path) {
+                int minX = 0, maxX = 11, minY = 0, maxY = 6;
+                for (var node in [...board, ...goalCards]) {
+                  if (node.x < minX) minX = node.x;
+                  if (node.x > maxX) maxX = node.x;
+                  if (node.y < minY) minY = node.y;
+                  if (node.y > maxY) maxY = node.y;
+                }
+                for (int x = minX - 1; x <= maxX + 1; x++) {
+                  for (int y = minY - 1; y <= maxY + 1; y++) {
+                    if (Validator.canPlaceCard(board, card, x, y)) {
+                      validCoords.add('$x,$y');
+                    }
                   }
                 }
-              }
-            } else if (pType == 'action') {
-              if (cId.startsWith('act_map')) {
-                // 지도는 목적지 카드만 타겟
-                for (var goal in goalCards) {
-                  validCoords.add('${goal.x},${goal.y}');
-                }
-              } else if (cId.startsWith('act_rock')) {
-                // 낙석은 시작점 제외한 모든 길 카드 타겟
-                for (var node in board) {
-                  if (node.card.type == game_card.CardType.path) {
+              } else if (card.type == game_card.CardType.action) {
+                if (card.actionType == game_card.ActionType.map) {
+                  // 지도는 목적지 카드만 타겟
+                  for (var goal in goalCards) {
+                    validCoords.add('${goal.x},${goal.y}');
+                  }
+                } else if (card.actionType == game_card.ActionType.rockfall) {
+                  // 낙석은 시작점 제외한 모든 길 카드 타겟
+                  for (var node in board) {
+                    if (node.card.type == game_card.CardType.path) {
                     // 시작점인지 확인 (일반적으로 x=0, y=0 등, 혹은 id로 판별)
                     // 현재 시작점은 card.type == start 로 생성되므로 여기 포함 안 됨 (path만 필터)
                     validCoords.add('${node.x},${node.y}');
@@ -144,6 +134,7 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
               }
             }
           }
+        }
 
           return Stack(
             children: [

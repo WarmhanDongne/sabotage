@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/card.dart' as game_card;
+import '../models/card_database.dart';
 import '../models/grid_node.dart';
 import '../models/player.dart';
 import '../models/lobby_state.dart';
@@ -69,7 +70,7 @@ class GameRepository {
     roles.shuffle(random);
 
     // 2. 덱 생성
-    List<game_card.Card> deck = _generateBasicDeck();
+    List<game_card.Card> deck = List.from(CardDatabase.allDeckCards);
     deck.shuffle(random);
 
     // 3. 목적지 카드 3장 생성 (랜덤 배치)
@@ -78,14 +79,25 @@ class GameRepository {
     isGoldList.shuffle(random);
     
     // 원래 dummy 설정값: 도착 (9, 1), (9, 3), (9, 5)
-    goalNodes.add(GridNode(x: 9, y: 1, card: game_card.Card(id: 'goal_1', type: game_card.CardType.goal, isGold: isGoldList[0]), isRevealed: false));
-    goalNodes.add(GridNode(x: 9, y: 3, card: game_card.Card(id: 'goal_2', type: game_card.CardType.goal, isGold: isGoldList[1]), isRevealed: false));
-    goalNodes.add(GridNode(x: 9, y: 5, card: game_card.Card(id: 'goal_3', type: game_card.CardType.goal, isGold: isGoldList[2]), isRevealed: false));
+    // 금은 008_cave_action_03, 돌은 008_cave_action_02, 008_cave_action_04
+    String getGoalId(bool isGold, int rockIndex) {
+      if (isGold) return '008_cave_action_03';
+      return rockIndex == 0 ? '008_cave_action_02' : '008_cave_action_04';
+    }
+    
+    int rockCount = 0;
+    for (int i = 0; i < 3; i++) {
+      int yPos = (i * 2) + 1; // 1, 3, 5
+      bool isGold = isGoldList[i];
+      String id = getGoalId(isGold, rockCount);
+      if (!isGold) rockCount++;
+      goalNodes.add(GridNode(x: 9, y: yPos, card: game_card.Card(id: id, type: game_card.CardType.goal, isGold: isGold), isRevealed: false));
+    }
 
     // 4. 시작 카드: 원래 dummy 설정값 (1, 3)
     final startNode = GridNode(
       x: 1, y: 3, 
-      card: const game_card.Card(id: 'start_card', type: game_card.CardType.start, hasTop: true, hasBottom: true, hasLeft: true, hasRight: true, hasCenter: true),
+      card: CardDatabase.startCard,
     );
 
     // 5. 플레이어 손패 나누기 (인원수에 따라 다름: 3~5명=6장, 6~7명=5장)
@@ -210,17 +222,8 @@ class GameRepository {
       final playerIndex = state.players.indexWhere((p) => p.id == playerId);
       if (!state.players[playerIndex].handCardIds.contains(cardId)) throw Exception("Card not in hand");
 
-      game_card.ActionType actionType = game_card.ActionType.none;
-      if (cardId.startsWith('act_break_pick')) actionType = game_card.ActionType.breakPickaxe;
-      else if (cardId.startsWith('act_break_lan')) actionType = game_card.ActionType.breakLantern;
-      else if (cardId.startsWith('act_break_cart')) actionType = game_card.ActionType.breakCart;
-      else if (cardId.startsWith('act_fix_pick')) actionType = game_card.ActionType.fixPickaxe;
-      else if (cardId.startsWith('act_fix_lan')) actionType = game_card.ActionType.fixLantern;
-      else if (cardId.startsWith('act_fix_cart')) actionType = game_card.ActionType.fixCart;
-      else if (cardId.startsWith('act_map')) actionType = game_card.ActionType.map;
-      else if (cardId.startsWith('act_rock')) actionType = game_card.ActionType.rockfall;
-
-      final card = game_card.Card(id: cardId, type: game_card.CardType.action, actionType: actionType);
+      final card = CardDatabase.getCardById(cardId);
+      if (card == null || card.type != game_card.CardType.action) throw Exception("Invalid action card");
 
       List<Player> newPlayers = List.from(state.players);
       List<GridNode> newBoard = List.from(state.board);
@@ -240,12 +243,29 @@ class GameRepository {
         case game_card.ActionType.fixPickaxe:
         case game_card.ActionType.fixLantern:
         case game_card.ActionType.fixCart:
+        case game_card.ActionType.fixCartOrLantern:
+        case game_card.ActionType.fixCartOrPickaxe:
+        case game_card.ActionType.fixLanternOrPickaxe:
           if (targetPlayerId == null) throw Exception('Target player required');
           final targetIdx = newPlayers.indexWhere((p) => p.id == targetPlayerId);
           final tp = newPlayers[targetIdx];
-          if (card.actionType == game_card.ActionType.fixPickaxe) newPlayers[targetIdx] = tp.copyWith(isPickaxeBroken: false);
-          if (card.actionType == game_card.ActionType.fixLantern) newPlayers[targetIdx] = tp.copyWith(isLanternBroken: false);
-          if (card.actionType == game_card.ActionType.fixCart) newPlayers[targetIdx] = tp.copyWith(isCartBroken: false);
+          
+          bool fixed = false;
+          if ((card.actionType == game_card.ActionType.fixPickaxe || card.actionType == game_card.ActionType.fixCartOrPickaxe || card.actionType == game_card.ActionType.fixLanternOrPickaxe) && tp.isPickaxeBroken && !fixed) {
+            newPlayers[targetIdx] = tp.copyWith(isPickaxeBroken: false);
+            fixed = true;
+          }
+          if ((card.actionType == game_card.ActionType.fixLantern || card.actionType == game_card.ActionType.fixCartOrLantern || card.actionType == game_card.ActionType.fixLanternOrPickaxe) && tp.isLanternBroken && !fixed) {
+            newPlayers[targetIdx] = tp.copyWith(isLanternBroken: false);
+            fixed = true;
+          }
+          if ((card.actionType == game_card.ActionType.fixCart || card.actionType == game_card.ActionType.fixCartOrLantern || card.actionType == game_card.ActionType.fixCartOrPickaxe) && tp.isCartBroken && !fixed) {
+            newPlayers[targetIdx] = tp.copyWith(isCartBroken: false);
+            fixed = true;
+          }
+          if (!fixed) {
+            // 아무것도 고치지 않았더라도 (어차피 고장난 게 없는데 사용한 경우), 카드는 소모됨
+          }
           break;
 
         case game_card.ActionType.rockfall:
@@ -379,68 +399,5 @@ class GameRepository {
     );
 
     transaction.update(docRef, newState.toJson());
-  }
-
-  List<game_card.Card> _generateBasicDeck() {
-    List<game_card.Card> deck = [];
-    int idCounter = 0;
-
-    void addPath(int count, bool top, bool bottom, bool left, bool right, bool center) {
-      String shapeStr = '${top?1:0}${right?1:0}${bottom?1:0}${left?1:0}${center?1:0}';
-      for (int i = 0; i < count; i++) {
-        deck.add(game_card.Card(
-          id: 'path_${shapeStr}_${idCounter++}', 
-          type: game_card.CardType.path, 
-          hasTop: top, hasBottom: bottom, hasLeft: left, hasRight: right, hasCenter: center
-        ));
-      }
-    }
-
-    // 1. Path Cards (총 40장 - 오리지널 구성 대략적 비율)
-    // 십자 길 (Cross) - 5장
-    addPath(5, true, true, true, true, true);
-    // T자 길 (T-Shape) - 위,왼,오 (5장) / 아래,왼,오 (5장) / 위,아래,왼 (5장) / 위,아래,오 (5장) => 20장
-    addPath(5, true, false, true, true, true);
-    addPath(5, false, true, true, true, true);
-    addPath(5, true, true, true, false, true);
-    addPath(5, true, true, false, true, true);
-    // 직선 (Straight) - 위,아래 (7장) / 왼,오 (3장) => 10장
-    addPath(7, true, true, false, false, true);
-    addPath(3, false, false, true, true, true);
-    // ㄱ자 꺾임 (Corner) - 5장 (임의 방향 배분)
-    addPath(2, true, false, true, false, true);
-    addPath(2, false, true, false, true, true);
-    addPath(1, true, false, false, true, true);
-    // 막힌 길 (Dead ends) - 임의 배분
-    addPath(5, true, true, true, true, false);
-
-    void addAction(int count, game_card.ActionType type, String prefix) {
-      for (int i = 0; i < count; i++) {
-        deck.add(game_card.Card(
-          id: '${prefix}_${idCounter++}', 
-          type: game_card.CardType.action, 
-          actionType: type
-        ));
-      }
-    }
-
-    // 2. Action Cards (총 27장)
-    addAction(3, game_card.ActionType.breakPickaxe, 'act_break_pick');
-    addAction(3, game_card.ActionType.breakLantern, 'act_break_lan');
-    addAction(3, game_card.ActionType.breakCart, 'act_break_cart');
-    
-    addAction(2, game_card.ActionType.fixPickaxe, 'act_fix_pick');
-    addAction(2, game_card.ActionType.fixLantern, 'act_fix_lan');
-    addAction(2, game_card.ActionType.fixCart, 'act_fix_cart');
-    // 복합 수리 카드는 구현상 임시로 단일 수리로 대체하거나 별도 로직 필요 (MVP에선 단일로)
-    addAction(1, game_card.ActionType.fixPickaxe, 'act_fix_pick_m');
-    addAction(1, game_card.ActionType.fixLantern, 'act_fix_lan_m');
-    addAction(1, game_card.ActionType.fixCart, 'act_fix_cart_m');
-
-    addAction(6, game_card.ActionType.map, 'act_map');
-    addAction(3, game_card.ActionType.rockfall, 'act_rock');
-
-    deck.shuffle();
-    return deck;
   }
 }

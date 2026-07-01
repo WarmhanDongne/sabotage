@@ -13,6 +13,9 @@ enum ActionType {
   fixLantern,
   breakCart,
   fixCart,
+  fixCartOrLantern, // 001_action_03
+  fixCartOrPickaxe, // 001_action_04
+  fixLanternOrPickaxe, // 일반적인 사보타지에 존재하는 다중 수리
   rockfall, // 낙석
   map,      // 지도
 }
