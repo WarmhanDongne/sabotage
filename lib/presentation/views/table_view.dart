@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../widgets/board_grid_widget.dart';
 import '../../data/game_state.dart';
 import '../../data/repositories/game_repository.dart';
-import '../../data/models/card.dart';
+import '../../data/models/card.dart' as game_card;
 import '../../logic/validator.dart';
 /// 호스트(태블릿) 뷰어.
 /// 기존 다크모드/커스텀 디자인 완전 폐기.
@@ -93,9 +93,9 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
           Set<String>? validCoords;
           if (state.pendingAction != null && state.pendingAction!['type'] == 'path') {
             validCoords = {};
-            final card = Card(
+            final card = game_card.Card(
               id: state.pendingAction!['cardId'],
-              type: CardType.path,
+              type: game_card.CardType.path,
               hasTop: true, hasBottom: true, hasLeft: true, hasRight: true, hasCenter: true,
             );
             

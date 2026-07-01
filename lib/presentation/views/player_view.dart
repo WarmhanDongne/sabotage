@@ -129,12 +129,18 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                         color: isMyTurn ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5),
                         child: Text(isMyTurn ? "내 턴입니다!" : "상대방 턴을 기다려주세요", style: const TextStyle(fontSize: 18, color: Colors.white)),
                       ),
-                      // 확정 버튼 (선택 시에만 노출되도록 간소화)
-                      if (_csm.currentState == ControllerState.cardSelected && isMyTurn)
-                        _buildConfirmButton(),
+                      // 확정 버튼 영역
+                      if (state.pendingAction != null && state.pendingAction!['playerId'] == widget.playerId)
+                        _buildPendingActionUI()
+                      else if (_csm.currentState == ControllerState.cardSelected && isMyTurn)
+                        _buildActionButtons(),
                       
                       // 부채꼴 카드 영역
-                      Expanded(child: _buildFanCards(currentHandImages)),
+                      Expanded(
+                        child: (state.pendingAction != null && state.pendingAction!['playerId'] == widget.playerId)
+                            ? const SizedBox() // 보류 중일 때는 카드를 숨김
+                            : _buildFanCards(currentHandImages)
+                      ),
                     ],
                   ),
                 ),

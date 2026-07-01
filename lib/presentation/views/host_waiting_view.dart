@@ -57,7 +57,8 @@ class _HostWaitingViewState extends State<HostWaitingView> {
           final lobby = snapshot.data!;
           
           return Center(
-            child: Column(
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
@@ -99,6 +100,7 @@ class _HostWaitingViewState extends State<HostWaitingView> {
                       : const Text('게임 시작', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
               ],
+            ),
             ),
           );
         },
