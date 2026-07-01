@@ -130,7 +130,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                         child: Text(isMyTurn ? "내 턴입니다!" : "상대방 턴을 기다려주세요", style: const TextStyle(fontSize: 18, color: Colors.white)),
                       ),
                       // 확정 버튼 (선택 시에만 노출되도록 간소화)
-                      if (_csm.currentState == ControllerState.targetSelected && isMyTurn)
+                      if (_csm.currentState == ControllerState.cardSelected && isMyTurn)
                         _buildConfirmButton(),
                       
                       // 부채꼴 카드 영역
@@ -344,7 +344,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
       onPressed: _dispatchAction,
-      child: const Text('위치 선택', style: TextStyle(fontWeight: FontWeight.bold)),
+      child: const Text('이 카드 버리기', style: TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -393,20 +393,35 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   }
 
   Future<void> _dispatchAction() async {
-    if (_csm.currentState != ControllerState.targetSelected) return;
+    if (_csm.currentState != ControllerState.cardSelected) return;
+    
     setState(() {
       _isPending = true;
-      _csm = _csm.dispatchAction();
     });
+    
     try {
-      await Future.delayed(const Duration(milliseconds: 800));
-    } finally {
+      final repo = context.read<GameRepository>();
+      final state = await repo.roomStream(widget.roomId).first;
+      if (state == null) throw Exception("State not found");
+      
+      final me = state.players.firstWhere((p) => p.id == widget.playerId);
+      final realCardId = me.handCardIds[_selectedCardIndex!];
+
+      await repo.discardCard(widget.roomId, widget.playerId, realCardId);
+      
       if (mounted) {
         setState(() {
           _isPending = false;
           _csm = const ControllerStateMachine();
           _selectedCardIndex = null;
         });
+      }
+    } catch (e) {
+      setState(() => _isPending = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('동작 실패: $e')),
+        );
       }
     }
   }

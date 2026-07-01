@@ -3,6 +3,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../data/repositories/game_repository.dart';
+import '../../data/repositories/auth_repository.dart';
+import 'dart:math';
 /// 방 생성 및 입장을 담당하는 로비 화면.
 /// DESIGN.md 기준: 골드/브라스 광산 테마
 class LobbyView extends StatefulWidget {
@@ -243,27 +245,56 @@ class _LobbyViewState extends State<LobbyView> {
 
   Future<void> _handleAction() async {
     final repo = context.read<GameRepository>();
+    final authRepo = context.read<AuthRepository>();
     
+    // 익명 로그인으로 고유 UID 획득
+    final user = await authRepo.signInAnonymously();
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인 실패. 다시 시도해주세요.')),
+        );
+      }
+      return;
+    }
+    final uid = user.uid;
+
     if (_isHost) {
-      // 방 생성 로직
-      final roomId = 'ROOM123';
-      final hostId = 'host_123';
-      
-      // MVP 테스트용 임시 플레이어 3명 하드코딩
-      final playerIds = ['P1', 'P2', 'P3'];
-      
-      await repo.createRoom(roomId, hostId, playerIds);
+      // 4자리 랜덤 방 코드 생성
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      final random = Random();
+      final roomCode = String.fromCharCodes(Iterable.generate(
+        4, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
+
+      await repo.createLobby(roomCode, uid);
       
       if (mounted) {
-        Navigator.pushNamed(context, '/table?room=$roomId');
+        // 호스트 대기실로 이동 (추후 라우팅)
+        Navigator.pushNamed(context, '/host_waiting?room=$roomCode');
       }
     } else {
-      final roomCode = _roomCodeController.text.trim();
+      final roomCode = _roomCodeController.text.trim().toUpperCase();
       final nickname = _nicknameController.text.trim();
-      if (roomCode.isEmpty || nickname.isEmpty) return;
+      if (roomCode.isEmpty || nickname.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('방 코드와 닉네임을 모두 입력해주세요.')),
+        );
+        return;
+      }
       
-      // 플레이어는 하드코딩된 P1으로 입장 (MVP 테스트용)
-      Navigator.pushNamed(context, '/player?room=$roomCode&id=P1');
+      try {
+        await repo.joinLobby(roomCode, uid, nickname);
+        if (mounted) {
+          // 플레이어 대기실/플레이어 뷰로 이동
+          Navigator.pushNamed(context, '/player?room=$roomCode&id=$uid');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('입장 실패: ${e.toString()}')),
+          );
+        }
+      }
     }
   }
 }

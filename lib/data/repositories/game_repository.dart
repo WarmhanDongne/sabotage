@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/card.dart' as game_card;
 import '../models/grid_node.dart';
 import '../models/player.dart';
+import '../models/lobby_state.dart';
 import '../game_state.dart';
 import '../../logic/validator.dart';
 
@@ -17,7 +18,44 @@ class GameRepository {
     });
   }
 
-  // 방 생성 (기본판 덱 세팅 및 초기 상태)
+  // 대기방(Lobby) 스트림
+  Stream<LobbyState?> lobbyStream(String roomId) {
+    return _firestore.collection('lobbies').doc(roomId).snapshots().map((doc) {
+      if (!doc.exists || doc.data() == null) return null;
+      return LobbyState.fromJson(doc.data()!);
+    });
+  }
+
+  // 대기방 생성 (호스트)
+  Future<void> createLobby(String roomId, String hostId) async {
+    final lobby = LobbyState(roomId: roomId, hostId: hostId);
+    await _firestore.collection('lobbies').doc(roomId).set(lobby.toJson());
+  }
+
+  // 플레이어 입장
+  Future<void> joinLobby(String roomId, String uid, String nickname) async {
+    final docRef = _firestore.collection('lobbies').doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) throw Exception("Room does not exist!");
+      final lobby = LobbyState.fromJson(snapshot.data()!);
+      if (lobby.status != 'waiting') throw Exception("Game already started");
+      
+      // 이미 들어온 유저인지 체크
+      if (!lobby.players.any((p) => p.uid == uid)) {
+        final newPlayers = List<LobbyPlayer>.from(lobby.players)..add(LobbyPlayer(uid: uid, nickname: nickname));
+        final newLobby = LobbyState(
+          roomId: lobby.roomId,
+          hostId: lobby.hostId,
+          players: newPlayers,
+          status: lobby.status,
+        );
+        transaction.update(docRef, newLobby.toJson());
+      }
+    });
+  }
+
+  // 방 생성 (기본판 덱 세팅 및 초기 상태) -> 대기방에서 게임 시작 시 호출
   Future<void> createRoom(String roomId, String hostId, List<String> playerIds) async {
     final random = Random();
 
@@ -72,6 +110,29 @@ class GameRepository {
     );
 
     await _firestore.collection('rooms').doc(roomId).set(initialState.toJson());
+  }
+
+  // 로비에서 게임 시작하기
+  Future<void> startGameFromLobby(String roomId) async {
+    final lobbyRef = _firestore.collection('lobbies').doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(lobbyRef);
+      if (!snapshot.exists) throw Exception("Lobby not found");
+      final lobby = LobbyState.fromJson(snapshot.data()!);
+      if (lobby.players.length < 3) throw Exception("Need at least 3 players"); // MVP에서는 3명 권장, 혼자서도 할 수 있게 하려면 주석처리
+      
+      // 방 생성 로직 호출
+      await createRoom(roomId, lobby.hostId, lobby.players.map((p) => p.uid).toList());
+      
+      // 상태 업데이트
+      final newLobby = LobbyState(
+        roomId: lobby.roomId,
+        hostId: lobby.hostId,
+        players: lobby.players,
+        status: 'playing',
+      );
+      transaction.update(lobbyRef, newLobby.toJson());
+    });
   }
 
   // 거래 트랜잭션: 굴 카드 놓기
