@@ -262,8 +262,8 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
+                  ), // Transform.rotate (child of GestureDetector) closing paren
                 ),
-              ),
             );
           }),
         );
