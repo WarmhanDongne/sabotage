@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../data/models/card.dart' as game_card;
+import '../../logic/card_image_mapper.dart';
 
 /// 보드판 위에 단일 카드 한 장을 렌더링하는 위젯.
 /// 오리지널 에셋(board_info) 이미지를 로드하여 표시하며, 탭 애니메이션(움찔) 및 텍스트 1초 노출을 처리합니다.
@@ -113,31 +114,10 @@ class _CardWidgetState extends State<CardWidget> with SingleTickerProviderStateM
   }
 
   Widget _buildCardImage() {
-    if (!widget.isRevealed) {
-      // 뒷면 처리 (목적지 등) - 유저 요청에 따라 02번 사용
-      return _buildImage('assets/board_info/009_cave_sword/009_cave_sword_02.png');
+    String assetPath = 'assets/board_info/004_path/004_path_back.png';
+    if (widget.card != null) {
+      assetPath = CardImageMapper.getImagePath(widget.card!, isRevealed: widget.isRevealed);
     }
-
-    // 카드 타입에 따른 오리지널 에셋 이미지 매핑 
-    // 실제 board_info/ 에셋 경로를 따릅니다.
-    String assetPath;
-    switch (widget.card!.type) {
-      case game_card.CardType.start:
-        assetPath = 'assets/board_info/009_cave_sword/009_cave_sword_01.png'; // 사용자가 지정한 시작 카드
-        break;
-      case game_card.CardType.goal:
-        assetPath = 'assets/board_info/009_cave_sword/009_cave_sword_02.png'; // 목적지 카드 에셋
-        break;
-      case game_card.CardType.action:
-        assetPath = 'assets/board_info/001_action/001_action_01.png';
-        break;
-      case game_card.CardType.path:
-        assetPath = 'assets/board_info/005_path/005_path_01.png';
-        break;
-      default:
-        assetPath = 'assets/board_info/009_cave_sword/009_cave_sword_03.png'; // 기본 뒷면
-    }
-
     return _buildImage(assetPath);
   }
 

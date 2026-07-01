@@ -186,14 +186,32 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                   child: _buildTopHUD(remainingCards),
                 ),
               ),
-              // 승리 알림 패널
+              // 승리 알림 패널 및 로비로 돌아가기
               if (state.isGameOver)
                 Container(
-                  color: Colors.black54,
+                  color: Colors.black87,
                   child: Center(
-                    child: Text(
-                      '게임 종료! 승리: ${state.winner == 'miner' ? '광부' : '방해꾼'}',
-                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.amber),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '게임 종료! 승리: ${state.winner == 'miner' ? '광부' : '방해꾼'}',
+                          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.amber),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber[700],
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          ),
+                          onPressed: () {
+                            // 방을 떠나거나, 단순히 로비 라우트로 변경
+                            Navigator.of(context).pushReplacementNamed('/');
+                          },
+                          child: const Text('로비로 돌아가기', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
                     ),
                   ),
                 ),

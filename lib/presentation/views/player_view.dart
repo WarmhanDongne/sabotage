@@ -6,6 +6,7 @@ import '../../logic/controller_state_machine.dart';
 import '../../data/game_state.dart';
 import '../../data/models/player.dart';
 import '../../data/repositories/game_repository.dart';
+import '../../logic/card_image_mapper.dart';
 
 /// 클라이언트(모바일) 뷰.
 /// 기존 다크모드/커스텀 디자인 완전 폐기.
@@ -34,15 +35,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   // 불변 상태: 역할 카드의 공개 여부 (false = 뒷면/숨김, true = 앞면/중앙 팝업)
   bool _identityRevealed = false;
 
-  // 더미 손패 카드 (오리지널 이미지들)
-  final List<String> _handCardImages = [
-    'assets/board_info/004_path/004_path_01.png',
-    'assets/board_info/001_action/001_action_01.png',
-    'assets/board_info/008_cave_action/008_cave_action_01.png',
-    'assets/board_info/004_path/004_path_02.png',
-    'assets/board_info/004_path/004_path_03.png',
-    'assets/board_info/001_action/001_action_05.png',
-  ];
+
 
   // 역할 카드 이미지
   final String _identityFrontImage = 'assets/board_info/002_dwarves/002_dwarves_01.png';
@@ -98,12 +91,10 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
           final me = state.players[meIndex];
           final isMyTurn = state.currentTurnPlayerId == widget.playerId;
           
-          // 패 업데이트 (여기서는 에셋 이름 매핑을 위해 더미 대신 빈칸 또는 실제 매핑)
-          // MVP용: 임시로 더미 이미지를 카드 ID 해시 기반으로 선택하게 함
+          // 패 업데이트 (실제 카드 ID 기반 매핑)
           final handCardIds = me.handCardIds;
           final currentHandImages = handCardIds.map((id) {
-            final hash = id.hashCode.abs();
-            return _handCardImages[hash % _handCardImages.length];
+            return CardImageMapper.getImagePathById(id);
           }).toList();
 
           return AbsorbPointer(
@@ -150,6 +141,36 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                 
                 if (_isPending) _buildPendingOverlay(),
                 if (_identityRevealed) _buildIdentityOverlay(me.role),
+
+                // 4. 게임 종료 패널
+                if (state.isGameOver)
+                  Container(
+                    color: Colors.black87,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '게임 종료!\n승리: ${state.winner == 'miner' ? '광부' : '방해꾼'}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.amber),
+                          ),
+                          const SizedBox(height: 32),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber[700],
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pushReplacementNamed('/');
+                            },
+                            child: const Text('로비로 돌아가기', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
