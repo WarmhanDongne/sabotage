@@ -119,7 +119,7 @@ class GameRepository {
       final snapshot = await transaction.get(lobbyRef);
       if (!snapshot.exists) throw Exception("Lobby not found");
       final lobby = LobbyState.fromJson(snapshot.data()!);
-      if (lobby.players.length < 3) throw Exception("Need at least 3 players"); // MVP에서는 3명 권장, 혼자서도 할 수 있게 하려면 주석처리
+      if (lobby.players.isEmpty) throw Exception("Need at least 1 player"); 
       
       // 방 생성 로직 호출
       await createRoom(roomId, lobby.hostId, lobby.players.map((p) => p.uid).toList());

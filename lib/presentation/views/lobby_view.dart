@@ -245,20 +245,7 @@ class _LobbyViewState extends State<LobbyView> {
 
   Future<void> _handleAction() async {
     final repo = context.read<GameRepository>();
-    final authRepo = context.read<AuthRepository>();
     
-    // 익명 로그인으로 고유 UID 획득
-    final user = await authRepo.signInAnonymously();
-    if (user == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('로그인 실패. 다시 시도해주세요.')),
-        );
-      }
-      return;
-    }
-    final uid = user.uid;
-
     if (_isHost) {
       // 4자리 랜덤 방 코드 생성
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -266,10 +253,13 @@ class _LobbyViewState extends State<LobbyView> {
       final roomCode = String.fromCharCodes(Iterable.generate(
         4, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
 
+      // 호스트의 임시 UID 생성
+      final uid = 'HOST_$roomCode';
+
       await repo.createLobby(roomCode, uid);
       
       if (mounted) {
-        // 호스트 대기실로 이동 (추후 라우팅)
+        // 호스트 대기실로 이동
         Navigator.pushNamed(context, '/host_waiting?room=$roomCode');
       }
     } else {
@@ -282,11 +272,14 @@ class _LobbyViewState extends State<LobbyView> {
         return;
       }
       
+      // MVP 로컬 멀티플레이어 테스트용: 닉네임 자체를 UID로 사용 (동일 브라우저 세션 충돌 방지)
+      final uid = nickname;
+      
       try {
         await repo.joinLobby(roomCode, uid, nickname);
         if (mounted) {
-          // 플레이어 대기실/플레이어 뷰로 이동
-          Navigator.pushNamed(context, '/player?room=$roomCode&id=$uid');
+          // 게임 화면이 아닌 플레이어 전용 대기실로 이동
+          Navigator.pushNamed(context, '/player_waiting?room=$roomCode&id=$uid');
         }
       } catch (e) {
         if (mounted) {
