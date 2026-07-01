@@ -41,7 +41,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   ];
 
   // 역할 카드 이미지
-  final String _identityFrontImage = 'assets/start_the_game/Phone Role 광부.png';
+  final String _identityFrontImage = 'assets/board_info/002_dwarves/002_dwarves_01.png';
   final String _identityBackImage = 'assets/board_info/010_red/010_red_01.png'; // 빨간 뒷면
 
   @override
@@ -84,7 +84,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
             // 1. 오리지널 대리석 배경 (다크모드/비네팅/커스텀 컬러 모두 배제)
             Positioned.fill(
               child: Image.asset(
-                'assets/phone_info/screen.png',
+                'assets/phone_info/basic_image.png',
                 fit: BoxFit.cover,
               ),
             ),
@@ -126,8 +126,8 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
         final cardHeight = cardWidth * 1.5;
 
         // [제약 준수]: 각 카드는 가로 너비의 정확히 "1/10"만 겹치도록 배치.
-        // 겹침이 width의 1/10이므로, 각 카드의 중심간 간격(step)은 width의 9/10 (0.9)
-        final cardStep = cardWidth * 0.9;
+        // 카드 간격: 오리지널 이미지(screen.png)처럼 자연스럽게 겹치도록 조정 (간격 약 70%)
+        final cardStep = cardWidth * 0.70;
         final totalFanWidth = cardWidth + (cardCount - 1) * cardStep;
         
         // 부채꼴을 화면 중앙에 정렬하기 위한 시작 X 좌표
