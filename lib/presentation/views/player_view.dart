@@ -121,20 +121,26 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 카드 크기 설정
-        final cardWidth = constraints.maxWidth * 0.22;
+        // 화면 양옆에 여백(Padding)을 32px(각 16px) 정도 둡니다.
+        final availableWidth = constraints.maxWidth - 32;
+
+        // 카드가 너무 많이 겹치지 않도록 카드 간격(Step)을 너비의 75%로 설정합니다. (25% 겹침)
+        final stepRatio = 0.75;
+        
+        // 전체 부채꼴 너비 = 첫 카드 1장 온전한 너비 + 나머지 카드(N-1장)들의 간격
+        // totalFanWidth = cardWidth + (cardCount - 1) * (cardWidth * stepRatio)
+        // 위 공식을 이용해 주어진 availableWidth에 딱 맞는 cardWidth를 역산합니다.
+        final cardWidth = availableWidth / (1 + (cardCount - 1) * stepRatio);
         final cardHeight = cardWidth * 1.5;
 
-        // [제약 준수]: 각 카드는 가로 너비의 정확히 "1/10"만 겹치도록 배치.
-        // 카드 간격: 오리지널 이미지(screen.png)처럼 자연스럽게 겹치도록 조정 (간격 약 70%)
-        final cardStep = cardWidth * 0.70;
+        final cardStep = cardWidth * stepRatio;
         final totalFanWidth = cardWidth + (cardCount - 1) * cardStep;
         
         // 부채꼴을 화면 중앙에 정렬하기 위한 시작 X 좌표
         final startX = (constraints.maxWidth - totalFanWidth) / 2;
 
         // 전체 펼침 각도 (카드가 많을수록 넓어짐)
-        final totalSpread = 30.0;
+        final totalSpread = 40.0; // 카드가 작아지면서 각도를 약간 넓혀 자연스럽게
         final angleStep = cardCount > 1 ? totalSpread / (cardCount - 1) : 0.0;
 
         return Stack(
