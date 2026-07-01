@@ -26,15 +26,9 @@ class BoardGridWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 9x5 고정 그리드 렌더링 (Ipad.png 에셋 구조 매칭)
-    const int cols = 9;
-    const int rows = 5;
-    
-    // 시작 카드 위치 보정
-    // 스크린샷 기준: 9열 중 1번째 열 (0-indexed: 0)
-    // 5행 중 3번째 행 (0-indexed: 2) -> 시작 Y는 -2 (원래 게임 기준 0이 중앙이 되도록)
-    const int startX = 0;
-    const int startY = -2;
+    // 새 배경 이미지(basic_image.png)를 위해 12x7 가상 그리드를 화면 전체에 사용합니다.
+    const int cols = 12;
+    const int rows = 7;
 
     final Map<String, GridNode> boardMap = {
       for (var n in [...board, ...goalCards]) '${n.x},${n.y}': n,
@@ -50,8 +44,8 @@ class BoardGridWidget extends StatelessWidget {
               _buildCell(
                 col: col,
                 row: row,
-                x: startX + col,
-                y: startY + row,
+                x: col,
+                y: row,
                 boardMap: boardMap,
               ),
         ],
@@ -76,29 +70,50 @@ class BoardGridWidget extends StatelessWidget {
       top: row * cellHeight,
       child: GestureDetector(
         onTap: onGridTap != null ? () => onGridTap!(x, y) : null,
-        child: Container(
+        child: SizedBox(
           width: cellWidth,
           height: cellHeight,
-          // 사용자가 놓을 수 있는 유효/무효 위치일 경우에만 오리지널 톤에 맞는 오버레이 표시.
-          decoration: BoxDecoration(
-            color: isValid
-                ? Colors.green.withOpacity(0.3)
-                : (isInvalid ? Colors.red.withOpacity(0.3) : Colors.transparent),
-            // 보드 그리드 셀 모서리 둥글게
-            borderRadius: BorderRadius.circular(6),
-          ),
-          // 카드 크기는 그리드 한 칸(네모)에 여백 없이 꽉 차도록 패딩 조정
-          // 아주 약간의 패딩만 남겨 서로 붙어보이면서도 자연스럽게
-          child: Padding(
-            padding: const EdgeInsets.all(2.0),
-            child: node != null
-                ? CardWidget(
-                    card: node.card,
-                    isRevealed: node.isRevealed,
-                    width: cellWidth - 4, // padding 제외 크기
-                    height: cellHeight - 4,
-                  )
-                : null,
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: 2 / 3, // 실제 사보타지 카드 비율에 근접한 직사각형
+              child: Container(
+                // 흰색 카드 자리 (카드가 없을 때 표시되는 빈 슬롯)
+                decoration: BoxDecoration(
+                  color: node == null ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2), 
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // 유효/무효 위치 오버레이 표시
+                    if (isValid)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    if (isInvalid)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    // 카드 렌더링
+                    if (node != null)
+                      CardWidget(
+                        card: node.card,
+                        isRevealed: node.isRevealed,
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
