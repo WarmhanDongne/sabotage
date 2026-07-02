@@ -24,6 +24,9 @@ class GameState {
 
   // 크로스 디바이스 상호작용용 대기 상태 (모바일 -> 태블릿)
   final Map<String, dynamic>? pendingAction;
+  
+  // 지도 카드 결과 (태블릿 -> 모바일)
+  final Map<String, dynamic>? lastMapResult;
 
   const GameState({
     required this.roomId,
@@ -38,6 +41,7 @@ class GameState {
     this.goldDistribution = const {},
     this.winner,
     this.pendingAction,
+    this.lastMapResult,
   });
 
   Map<String, dynamic> toJson() {
@@ -54,6 +58,7 @@ class GameState {
       'goldDistribution': goldDistribution,
       'winner': winner,
       'pendingAction': pendingAction,
+      'lastMapResult': lastMapResult,
     };
   }
 
@@ -71,6 +76,7 @@ class GameState {
       goldDistribution: Map<String, int>.from(json['goldDistribution'] as Map? ?? {}),
       winner: json['winner'] as String?,
       pendingAction: json['pendingAction'] as Map<String, dynamic>?,
+      lastMapResult: json['lastMapResult'] as Map<String, dynamic>?,
     );
   }
 }

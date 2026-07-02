@@ -7,6 +7,8 @@ import '../../data/game_state.dart';
 import '../../data/models/player.dart';
 import '../../data/repositories/game_repository.dart';
 import '../../logic/card_image_mapper.dart';
+import '../../data/models/card.dart' as game_card;
+import '../../data/models/card_database.dart';
 
 /// 클라이언트(모바일) 뷰.
 /// 기존 다크모드/커스텀 디자인 완전 폐기.
@@ -26,6 +28,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   bool _isPending = false;
   int? _selectedCardIndex;
   bool _isRotated = false;
+  int? _seenMapResultTimestamp;
 
   // Identity Card 애니메이션
   late AnimationController _identitySlideController;
@@ -121,17 +124,34 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                         color: isMyTurn ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5),
                         child: Text(isMyTurn ? "내 턴입니다!" : "상대방 턴을 기다려주세요", style: const TextStyle(fontSize: 18, color: Colors.white)),
                       ),
+                      // 내 장비 상태 표시
+                      if (me.isPickaxeBroken || me.isLanternBroken || me.isCartBroken)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          margin: const EdgeInsets.only(top: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '장비 고장: ' + 
+                            [
+                              if (me.isPickaxeBroken) '곡괭이',
+                              if (me.isLanternBroken) '랜턴',
+                              if (me.isCartBroken) '수레',
+                            ].join(', '),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
                       // 확정 버튼 영역
                       if (state.pendingAction != null && state.pendingAction!['playerId'] == widget.playerId)
-                        _buildPendingActionUI()
+                        _buildPendingActionUI(state.pendingAction!)
                       else if (_csm.currentState == ControllerState.cardSelected && isMyTurn)
                         _buildActionButtons(currentHandImages),
                       
                       // 부채꼴 카드 영역
                       Expanded(
-                        child: (state.pendingAction != null && state.pendingAction!['playerId'] == widget.playerId)
-                            ? const SizedBox() // 보류 중일 때는 카드를 숨김
-                            : _buildFanCards(currentHandImages)
+                        child: _buildFanCards(currentHandImages),
                       ),
                     ],
                   ),
@@ -142,6 +162,12 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                 
                 if (_isPending) _buildPendingOverlay(),
                 if (_identityRevealed) _buildIdentityOverlay(me.role),
+
+                // 지도 카드 결과 알림 (가장 위로)
+                if (state.lastMapResult != null && 
+                    state.lastMapResult!['playerId'] == widget.playerId && 
+                    state.lastMapResult!['timestamp'] != _seenMapResultTimestamp)
+                  _buildMapResultOverlay(state.lastMapResult!['isGold'], state.lastMapResult!['timestamp']),
 
                 // 4. 게임 종료 패널
                 if (state.isGameOver)
@@ -416,14 +442,86 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildPendingActionUI() {
+  Widget _buildMapResultOverlay(bool isGold, int timestamp) {
+    return Container(
+      color: Colors.black.withOpacity(0.8),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          margin: const EdgeInsets.symmetric(horizontal: 32),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.amber, width: 4),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '지도 카드 결과',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                isGold ? '확인한 목적지는\n✨ 금 ✨\n입니다!' : '확인한 목적지는\n🪨 돌 🪨\n입니다!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: isGold ? Colors.amber[700] : Colors.grey[700]),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber[700],
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                ),
+                onPressed: () {
+                  setState(() => _seenMapResultTimestamp = timestamp);
+                  context.read<GameRepository>().clearMapResult(widget.roomId);
+                },
+                child: const Text('확인', style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingActionUI(Map<String, dynamic> pendingAction) {
+    final cardId = pendingAction['cardId'] as String;
+    final isRotated = pendingAction['isRotated'] == true;
+    final imagePath = CardImageMapper.getImagePathById(cardId);
+
     return Column(
       children: [
         const Text(
           '태블릿 화면에서 대상을 선택해주세요.',
           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        // 선택된 카드 미리보기
+        Transform.rotate(
+          angle: isRotated ? math.pi : 0.0,
+          child: Container(
+            width: 80,
+            height: 120,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.amber, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.amber.withOpacity(0.4),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(imagePath, fit: BoxFit.cover),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[700]),
           onPressed: _cancelAction,
@@ -490,6 +588,20 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
       
       final me = state.players.firstWhere((p) => p.id == widget.playerId);
       final realCardId = me.handCardIds[_selectedCardIndex!];
+
+      // 고장 상태인지 확인하고 길 카드라면 차단
+      final card = CardDatabase.getCardById(realCardId);
+      if (card != null && card.type == game_card.CardType.path) {
+        if (me.isPickaxeBroken || me.isLanternBroken || me.isCartBroken) {
+          setState(() => _isPending = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('장비가 고장나서 굴 카드를 놓을 수 없습니다! (먼저 장비를 수리하세요)')),
+            );
+          }
+          return;
+        }
+      }
 
       await repo.setPendingAction(widget.roomId, widget.playerId, realCardId, isRotated: _isRotated);
       

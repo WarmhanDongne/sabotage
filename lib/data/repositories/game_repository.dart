@@ -185,13 +185,34 @@ class GameRepository {
       bool isMinerWin = false;
       List<GridNode> newGoalCards = List.from(state.goalCards);
       
-      // 방금 놓은 카드가 목적지와 닿아있는지 검사
+      // 보드의 어떤 변경이든 목적지 도달을 트리거할 수 있으므로, 목적지 주변 카드를 모두 검사
       for (int i = 0; i < newGoalCards.length; i++) {
         final goal = newGoalCards[i];
         if (!goal.isRevealed) {
-          bool adjacent = (targetX == goal.x && (targetY == goal.y - 1 || targetY == goal.y + 1)) ||
-                          (targetY == goal.y && (targetX == goal.x - 1 || targetX == goal.x + 1));
-          if (adjacent && Validator.isConnectedToStart(newBoard, targetX, targetY)) {
+          bool isConnected = false;
+
+          // 위쪽 검사
+          final topNodeIdx = newBoard.indexWhere((n) => n.x == goal.x && n.y == goal.y - 1);
+          if (topNodeIdx != -1 && newBoard[topNodeIdx].card.currentBottom) {
+             if (Validator.isConnectedToStart(newBoard, goal.x, goal.y - 1, requireTunnelPath: true)) isConnected = true;
+          }
+          // 아래쪽 검사
+          final bottomNodeIdx = newBoard.indexWhere((n) => n.x == goal.x && n.y == goal.y + 1);
+          if (!isConnected && bottomNodeIdx != -1 && newBoard[bottomNodeIdx].card.currentTop) {
+             if (Validator.isConnectedToStart(newBoard, goal.x, goal.y + 1, requireTunnelPath: true)) isConnected = true;
+          }
+          // 왼쪽 검사
+          final leftNodeIdx = newBoard.indexWhere((n) => n.x == goal.x - 1 && n.y == goal.y);
+          if (!isConnected && leftNodeIdx != -1 && newBoard[leftNodeIdx].card.currentRight) {
+             if (Validator.isConnectedToStart(newBoard, goal.x - 1, goal.y, requireTunnelPath: true)) isConnected = true;
+          }
+          // 오른쪽 검사
+          final rightNodeIdx = newBoard.indexWhere((n) => n.x == goal.x + 1 && n.y == goal.y);
+          if (!isConnected && rightNodeIdx != -1 && newBoard[rightNodeIdx].card.currentLeft) {
+             if (Validator.isConnectedToStart(newBoard, goal.x + 1, goal.y, requireTunnelPath: true)) isConnected = true;
+          }
+
+          if (isConnected) {
             newGoalCards[i] = goal.copyWith(isRevealed: true);
             if (goal.card.isGold) {
               isMinerWin = true;
@@ -273,15 +294,30 @@ class GameRepository {
           newBoard.removeAt(nodeIdx);
           break;
 
+        case game_card.ActionType.map:
+          if (targetX == null || targetY == null) throw Exception('Target coordinates required for map');
+          final goalIdx = state.goalCards.indexWhere((g) => g.x == targetX && g.y == targetY);
+          if (goalIdx == -1) throw Exception('Invalid map target');
+          break;
+
         default:
           break;
       }
+
+      final Map<String, dynamic>? newMapResult = card.actionType == game_card.ActionType.map 
+        ? {
+            'playerId': playerId,
+            'isGold': state.goalCards.firstWhere((g) => g.x == targetX && g.y == targetY).card.isGold,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          }
+        : null;
 
       // 상태 업데이트 (players 객체를 변경했으므로 state 객체 교체)
       final tempState = GameState(
         roomId: state.roomId, players: newPlayers, currentTurnPlayerId: state.currentTurnPlayerId,
         board: newBoard, deck: state.deck, discardPile: state.discardPile, goalCards: state.goalCards,
-        currentRound: state.currentRound, isGameOver: state.isGameOver, goldDistribution: state.goldDistribution
+        currentRound: state.currentRound, isGameOver: state.isGameOver, goldDistribution: state.goldDistribution,
+        lastMapResult: newMapResult,
       );
 
       _advanceTurn(tempState, playerIndex, cardId, newBoard, state.goalCards, null, transaction, docRef);
@@ -356,9 +392,16 @@ class GameRepository {
         currentRound: state.currentRound, isGameOver: state.isGameOver, goldDistribution: state.goldDistribution,
         winner: state.winner,
         pendingAction: null,
+        lastMapResult: state.lastMapResult,
       );
       transaction.update(docRef, newState.toJson());
     });
+  }
+
+  // 지도 확인 완료 누를 때 호출
+  Future<void> clearMapResult(String roomId) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    await docRef.update({'lastMapResult': null});
   }
 
   // 내부 헬퍼: 턴 종료
@@ -394,6 +437,7 @@ class GameRepository {
       isGameOver: isGameOver,
       winner: finalWinner,
       goldDistribution: state.goldDistribution,
+      lastMapResult: state.lastMapResult,
       pendingAction: null,
     );
 

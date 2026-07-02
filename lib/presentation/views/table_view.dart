@@ -104,21 +104,26 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
               final isRotated = state.pendingAction!['isRotated'] == true;
               final card = baseCard.copyWith(isRotated: isRotated);
               if (card.type == game_card.CardType.path) {
-                int minX = 0, maxX = 11, minY = 0, maxY = 6;
-                for (var node in [...board, ...goalCards]) {
-                  if (node.x < minX) minX = node.x;
-                  if (node.x > maxX) maxX = node.x;
-                  if (node.y < minY) minY = node.y;
-                  if (node.y > maxY) maxY = node.y;
-                }
+                // 고장 난 장비가 있으면 굴 카드를 놓을 수 없으므로 validCoords를 생성하지 않음
+                final currentPlayer = state.players.firstWhere((p) => p.id == state.pendingAction!['playerId']);
+                if (!currentPlayer.isPickaxeBroken && !currentPlayer.isLanternBroken && !currentPlayer.isCartBroken) {
+                  int minX = 0, maxX = 11, minY = 0, maxY = 6;
+                  for (var node in [...board, ...goalCards]) {
+                    if (node.x < minX) minX = node.x;
+                    if (node.x > maxX) maxX = node.x;
+                    if (node.y < minY) minY = node.y;
+                    if (node.y > maxY) maxY = node.y;
+                  }
                 for (int x = minX - 1; x <= maxX + 1; x++) {
                   for (int y = minY - 1; y <= maxY + 1; y++) {
+                    if (goalCards.any((g) => g.x == x && g.y == y)) continue;
                     if (Validator.canPlaceCard(board, card, x, y)) {
                       validCoords!.add('$x,$y');
                     }
                   }
                 }
-              } else if (card.type == game_card.CardType.action) {
+              }
+            } else if (card.type == game_card.CardType.action) {
                 if (card.actionType == game_card.ActionType.map) {
                   // 지도는 목적지 카드만 타겟
                   for (var goal in goalCards) {
@@ -188,7 +193,10 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                                     );
                                   } else if (state.pendingAction!['type'] == 'action') {
                                     final cId = state.pendingAction!['cardId'];
-                                    if (cId.startsWith('act_rock') || cId.startsWith('act_map')) {
+                                    final actionCard = CardDatabase.getCardById(cId);
+                                    if (actionCard != null && 
+                                        (actionCard.actionType == game_card.ActionType.rockfall ||
+                                         actionCard.actionType == game_card.ActionType.map)) {
                                       await context.read<GameRepository>().playActionCard(
                                         widget.roomId,
                                         state.pendingAction!['playerId'],
@@ -223,7 +231,7 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
               ),
               // 4. 행동 카드 대상 선택 UI (장비 파괴/수리)
               if (state.pendingAction != null && state.pendingAction!['type'] == 'action' && 
-                  (state.pendingAction!['cardId'].startsWith('act_break') || state.pendingAction!['cardId'].startsWith('act_fix')))
+                  _isBreakOrFixCard(state.pendingAction!['cardId']))
                 Positioned(
                   right: 16,
                   top: 100,
@@ -324,6 +332,20 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
   }
 
   Widget _buildPlayerTargetList(BuildContext context, GameState state) {
+    final pendingCardId = state.pendingAction!['cardId'];
+    final pendingPlayerId = state.pendingAction!['playerId'];
+    final actionCard = CardDatabase.getCardById(pendingCardId);
+    final isBreakCard = actionCard != null && (
+        actionCard.actionType == game_card.ActionType.breakPickaxe || 
+        actionCard.actionType == game_card.ActionType.breakLantern || 
+        actionCard.actionType == game_card.ActionType.breakCart);
+    
+    // 고장 카드는 자기 자신에게 사용 불가 (수리 카드는 가능)
+    final targetPlayers = state.players.where((p) {
+      if (isBreakCard && p.id == pendingPlayerId) return false;
+      return true;
+    }).toList();
+
     return Container(
       width: 200,
       decoration: BoxDecoration(
@@ -343,9 +365,9 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
           const Divider(color: Colors.white54),
           Expanded(
             child: ListView.builder(
-              itemCount: state.players.length,
+              itemCount: targetPlayers.length,
               itemBuilder: (context, index) {
-                final p = state.players[index];
+                final p = targetPlayers[index];
                 return ListTile(
                   title: Text(p.id, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(
@@ -375,5 +397,20 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
         ],
       ),
     );
+  }
+
+  /// 카드 ID가 장비 파괴/수리 행동 카드인지 확인하는 헬퍼
+  bool _isBreakOrFixCard(String cardId) {
+    final card = CardDatabase.getCardById(cardId);
+    if (card == null || card.type != game_card.CardType.action) return false;
+    return card.actionType == game_card.ActionType.breakPickaxe ||
+           card.actionType == game_card.ActionType.breakLantern ||
+           card.actionType == game_card.ActionType.breakCart ||
+           card.actionType == game_card.ActionType.fixPickaxe ||
+           card.actionType == game_card.ActionType.fixLantern ||
+           card.actionType == game_card.ActionType.fixCart ||
+           card.actionType == game_card.ActionType.fixCartOrLantern ||
+           card.actionType == game_card.ActionType.fixCartOrPickaxe ||
+           card.actionType == game_card.ActionType.fixLanternOrPickaxe;
   }
 }

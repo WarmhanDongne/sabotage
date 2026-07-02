@@ -39,6 +39,23 @@ class BoardGridWidget extends StatelessWidget {
       if (node.y > maxY) maxY = node.y;
     }
 
+    // 유효한 배치 위치가 렌더링되도록 오버레이 좌표도 경계에 포함
+    if (validOverlayCoords != null) {
+      for (var coord in validOverlayCoords!) {
+        final parts = coord.split(',');
+        if (parts.length == 2) {
+          final px = int.tryParse(parts[0]);
+          final py = int.tryParse(parts[1]);
+          if (px != null && py != null) {
+            if (px < minX) minX = px;
+            if (px > maxX) maxX = px;
+            if (py < minY) minY = py;
+            if (py > maxY) maxY = py;
+          }
+        }
+      }
+    }
+
     final int cols = maxX - minX + 1;
     final int rows = maxY - minY + 1;
 
@@ -105,7 +122,13 @@ class BoardGridWidget extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // 유효/무효 위치 오버레이 표시
+                    // 카드 렌더링 (아래)
+                    if (node != null)
+                      CardWidget(
+                        card: node.card,
+                        isRevealed: node.isRevealed,
+                      ),
+                    // 유효/무효 위치 오버레이 표시 (위)
                     if (isValid)
                       Container(
                         decoration: BoxDecoration(
@@ -119,12 +142,6 @@ class BoardGridWidget extends StatelessWidget {
                           color: Colors.red.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                      ),
-                    // 카드 렌더링
-                    if (node != null)
-                      CardWidget(
-                        card: node.card,
-                        isRevealed: node.isRevealed,
                       ),
                   ],
                 ),

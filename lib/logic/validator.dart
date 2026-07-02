@@ -49,7 +49,7 @@ class Validator {
     // (시작점에서 뻗어나간 굴과 이어져야만 카드를 놓을 수 있음)
     // 가상의 보드를 만들어서 테스트
     List<GridNode> testBoard = List.from(board)..add(GridNode(x: targetX, y: targetY, card: newCard));
-    return isConnectedToStart(testBoard, targetX, targetY);
+    return isConnectedToStart(testBoard, targetX, targetY, requireTunnelPath: true);
   }
 
   static GridNode? _getNodeAt(List<GridNode> board, int x, int y) {
@@ -60,8 +60,15 @@ class Validator {
     }
   }
 
-  /// BFS를 사용하여 특정 좌표(x,y)가 시작점(Start)과 굴로 연결되어 있는지 확인합니다.
-  static bool isConnectedToStart(List<GridNode> board, int targetX, int targetY) {
+  /// BFS를 사용하여 특정 좌표(x,y)가 시작점(Start)과 연결되어 있는지 확인합니다.
+  /// 
+  /// [requireTunnelPath]가 false(기본값)이면 카드 배치 검증용:
+  ///   - 막힌 카드(hasCenter: false)도 물리적으로 연결된 네트워크의 일부로 인정
+  ///   - 인접한 카드 간 입구 일치 여부만 확인하여 체인 형성 검사
+  ///
+  /// [requireTunnelPath]가 true이면 승리 조건(금 도달) 검사용:
+  ///   - 막힌 카드를 통과할 수 없음 (실제 굴이 연결되지 않으므로)
+  static bool isConnectedToStart(List<GridNode> board, int targetX, int targetY, {bool requireTunnelPath = false}) {
     // 시작점 찾기
     final startNode = board.firstWhere(
       (node) => node.card.type == CardType.start,
@@ -81,6 +88,12 @@ class Validator {
 
       if (current.x == targetX && current.y == targetY) {
         return true;
+      }
+
+      // 승리 조건 검사 시에만: 막힌 카드(hasCenter: false)는 통과 불가
+      // 배치 검증 시에는: 막힌 카드도 네트워크의 일부로 통과 가능
+      if (requireTunnelPath && !current.card.hasCenter && current.card.type != CardType.start) {
+        continue;
       }
 
       // 인접 노드 탐색
