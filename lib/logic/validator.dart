@@ -3,6 +3,22 @@ import '../data/models/grid_node.dart';
 import 'dart:collection';
 
 class Validator {
+  // Goal 카드나 일반 카드의 특정 방향 연결 상태를 반환하는 헬퍼
+  static bool _hasEdge(GridNode node, String direction) {
+    if (node.card.type == CardType.goal && !node.isRevealed) {
+      // 도착지점 카드는 앞면이 공개되기 전까지는 모든 방향이 통로인 것으로 간주
+      return true;
+    }
+    // 공개된 Goal 카드이거나 일반 카드인 경우 실제 통로 속성 반환
+    switch (direction) {
+      case 'top': return node.card.currentTop;
+      case 'bottom': return node.card.currentBottom;
+      case 'left': return node.card.currentLeft;
+      case 'right': return node.card.currentRight;
+      default: return false;
+    }
+  }
+
   /// 지정된 (x, y) 위치에 [newCard]를 놓을 수 있는지 검증합니다.
   static bool canPlaceCard(
     List<GridNode> board,
@@ -26,20 +42,40 @@ class Validator {
     final rightNode = _getNodeAt(board, targetX + 1, targetY);
 
     if (topNode != null) {
-      if (_hasEdge(topNode, 'bottom') != newCard.currentTop) return false;
-      hasAdjacent = true;
+      if (topNode.card.type == CardType.goal && !topNode.isRevealed) {
+        hasAdjacent = true;
+      } else if (_hasEdge(topNode, 'bottom') != newCard.currentTop) {
+        return false;
+      } else {
+        hasAdjacent = true;
+      }
     }
     if (bottomNode != null) {
-      if (_hasEdge(bottomNode, 'top') != newCard.currentBottom) return false;
-      hasAdjacent = true;
+      if (bottomNode.card.type == CardType.goal && !bottomNode.isRevealed) {
+        hasAdjacent = true;
+      } else if (_hasEdge(bottomNode, 'top') != newCard.currentBottom) {
+        return false;
+      } else {
+        hasAdjacent = true;
+      }
     }
     if (leftNode != null) {
-      if (_hasEdge(leftNode, 'right') != newCard.currentLeft) return false;
-      hasAdjacent = true;
+      if (leftNode.card.type == CardType.goal && !leftNode.isRevealed) {
+        hasAdjacent = true;
+      } else if (_hasEdge(leftNode, 'right') != newCard.currentLeft) {
+        return false;
+      } else {
+        hasAdjacent = true;
+      }
     }
     if (rightNode != null) {
-      if (_hasEdge(rightNode, 'left') != newCard.currentRight) return false;
-      hasAdjacent = true;
+      if (rightNode.card.type == CardType.goal && !rightNode.isRevealed) {
+        hasAdjacent = true;
+      } else if (_hasEdge(rightNode, 'left') != newCard.currentRight) {
+        return false;
+      } else {
+        hasAdjacent = true;
+      }
     }
 
     // 완전히 동떨어진 곳에는 놓을 수 없음 (최소 하나 이상의 카드와 인접해야 함)
