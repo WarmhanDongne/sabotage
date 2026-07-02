@@ -181,6 +181,31 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                             cellHeight: cellHeight,
                             validOverlayCoords: validCoords,
                             onGridTap: (x, y) async {
+                              // 사용자 피드백 (에러 팝업)을 위해 명시적으로 Validator.getPlacementError 호출
+                              if (state.pendingAction != null && state.pendingAction!['type'] == 'path') {
+                                final cardId = state.pendingAction!['cardId'];
+                                final isRotated = state.pendingAction!['isRotated'] == true;
+                                final baseCard = CardDatabase.getCardById(cardId);
+                                if (baseCard != null) {
+                                  final card = baseCard.copyWith(isRotated: isRotated);
+                                  final fullBoard = [...board, ...goalCards];
+                                  final error = Validator.getPlacementError(fullBoard, card, x, y);
+                                  
+                                  if (error != null) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(error, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                          backgroundColor: Colors.red[800],
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                    return; // 에러가 있으면 진행 중지
+                                  }
+                                }
+                              }
+
                               if (validCoords != null && validCoords!.contains('$x,$y')) {
                                 try {
                                   if (state.pendingAction!['type'] == 'path') {

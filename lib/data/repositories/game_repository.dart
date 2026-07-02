@@ -194,22 +194,22 @@ class GameRepository {
 
           // 위쪽 검사
           final topNodeIdx = newBoard.indexWhere((n) => n.x == goal.x && n.y == goal.y - 1);
-          if (topNodeIdx != -1 && newBoard[topNodeIdx].card.currentBottom) {
+          if (topNodeIdx != -1 && newBoard[topNodeIdx].card.currentBottom && newBoard[topNodeIdx].card.hasCenter) {
              if (Validator.isConnectedToStart(newBoard, goal.x, goal.y - 1, requireTunnelPath: true)) isConnected = true;
           }
           // 아래쪽 검사
           final bottomNodeIdx = newBoard.indexWhere((n) => n.x == goal.x && n.y == goal.y + 1);
-          if (!isConnected && bottomNodeIdx != -1 && newBoard[bottomNodeIdx].card.currentTop) {
+          if (!isConnected && bottomNodeIdx != -1 && newBoard[bottomNodeIdx].card.currentTop && newBoard[bottomNodeIdx].card.hasCenter) {
              if (Validator.isConnectedToStart(newBoard, goal.x, goal.y + 1, requireTunnelPath: true)) isConnected = true;
           }
           // 왼쪽 검사
           final leftNodeIdx = newBoard.indexWhere((n) => n.x == goal.x - 1 && n.y == goal.y);
-          if (!isConnected && leftNodeIdx != -1 && newBoard[leftNodeIdx].card.currentRight) {
+          if (!isConnected && leftNodeIdx != -1 && newBoard[leftNodeIdx].card.currentRight && newBoard[leftNodeIdx].card.hasCenter) {
              if (Validator.isConnectedToStart(newBoard, goal.x - 1, goal.y, requireTunnelPath: true)) isConnected = true;
           }
           // 오른쪽 검사
           final rightNodeIdx = newBoard.indexWhere((n) => n.x == goal.x + 1 && n.y == goal.y);
-          if (!isConnected && rightNodeIdx != -1 && newBoard[rightNodeIdx].card.currentLeft) {
+          if (!isConnected && rightNodeIdx != -1 && newBoard[rightNodeIdx].card.currentLeft && newBoard[rightNodeIdx].card.hasCenter) {
              if (Validator.isConnectedToStart(newBoard, goal.x + 1, goal.y, requireTunnelPath: true)) isConnected = true;
           }
 
