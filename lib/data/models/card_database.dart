@@ -6,43 +6,40 @@ class CardDatabase {
   // user's definitions: 
   // 좌(Left), 우(Right), 상(Top), 하(Bottom)
   static final List<Card> pathCards = [
-    const Card(id: '004_path_01', type: CardType.path, hasLeft: true, hasTop: true, hasBottom: true, hasRight: false, hasCenter: true),
-    const Card(id: '004_path_02', type: CardType.path, hasLeft: true, hasRight: true, hasTop: false, hasBottom: false, hasCenter: true),
-    const Card(id: '004_path_03', type: CardType.path, hasLeft: true, hasBottom: true, hasTop: false, hasRight: false, hasCenter: true),
-    const Card(id: '004_path_04', type: CardType.path, hasTop: true, hasBottom: true, hasRight: true, hasLeft: false, hasCenter: true),
-    const Card(id: '004_path_05', type: CardType.path, hasLeft: true, hasRight: true, hasTop: false, hasBottom: false, hasCenter: false), // 좌, 우 막음
-    const Card(id: '004_path_06', type: CardType.path, hasTop: true, hasLeft: true, hasBottom: true, hasRight: false, hasCenter: false), // 상, 좌, 하 막음
-    const Card(id: '004_path_07', type: CardType.path, hasLeft: true, hasBottom: true, hasRight: true, hasTop: false, hasCenter: true),
-    const Card(id: '004_path_08', type: CardType.path, hasLeft: true, hasRight: true, hasTop: false, hasBottom: false, hasCenter: true),
-    const Card(id: '004_path_09', type: CardType.path, hasLeft: true, hasTop: true, hasBottom: false, hasRight: false, hasCenter: true),
-
-    const Card(id: '005_path_01', type: CardType.path, hasLeft: true, hasTop: true, hasBottom: true, hasRight: false, hasCenter: true),
+    const Card(id: '004_path_01', type: CardType.path, hasLeft: false, hasTop: false, hasRight: true, hasBottom: true, hasCenter: false),
+    const Card(id: '004_path_02', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: false, hasCenter: true),
+    const Card(id: '004_path_03', type: CardType.path, hasLeft: true, hasTop: false, hasRight: false, hasBottom: true, hasCenter: true),
+    const Card(id: '004_path_04', type: CardType.path, hasLeft: false, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
+    const Card(id: '004_path_05', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: true, hasCenter: false),
+    const Card(id: '004_path_06', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: true, hasCenter: true),
+    const Card(id: '004_path_07', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: true, hasCenter: true),
+    const Card(id: '004_path_08', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: false, hasCenter: true),
+    const Card(id: '004_path_09', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: false, hasCenter: false),
+    const Card(id: '005_path_01', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: true, hasCenter: true),
     const Card(id: '005_path_02', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
-    const Card(id: '005_path_03', type: CardType.path, hasTop: true, hasRight: true, hasLeft: false, hasBottom: false, hasCenter: true),
-    const Card(id: '005_path_04', type: CardType.path, hasLeft: true, hasTop: true, hasBottom: true, hasRight: false, hasCenter: true),
-    const Card(id: '005_path_05', type: CardType.path, hasTop: true, hasBottom: true, hasLeft: false, hasRight: false, hasCenter: false), // 상, 하 막음
-    const Card(id: '005_path_06', type: CardType.path, hasLeft: true, hasBottom: true, hasRight: true, hasTop: false, hasCenter: true), // 막히지 않음!
-    const Card(id: '005_path_07', type: CardType.path, hasLeft: true, hasTop: true, hasBottom: false, hasRight: false, hasCenter: true),
-    const Card(id: '005_path_08', type: CardType.path, hasLeft: true, hasTop: true, hasBottom: false, hasRight: false, hasCenter: false), // 좌, 상 막음
+    const Card(id: '005_path_03', type: CardType.path, hasLeft: false, hasTop: true, hasRight: true, hasBottom: false, hasCenter: true),
+    const Card(id: '005_path_04', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: true, hasCenter: true),
+    const Card(id: '005_path_05', type: CardType.path, hasLeft: false, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
+    const Card(id: '005_path_06', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: true, hasCenter: true),
+    const Card(id: '005_path_07', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: false, hasCenter: false),
+    const Card(id: '005_path_08', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: false, hasCenter: false),
     const Card(id: '005_path_09', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
-
-    const Card(id: '006_path_01', type: CardType.path, hasLeft: true, hasBottom: true, hasTop: false, hasRight: false, hasCenter: true),
-    const Card(id: '006_path_02', type: CardType.path, hasBottom: true, hasRight: true, hasTop: false, hasLeft: false, hasCenter: true),
+    const Card(id: '006_path_01', type: CardType.path, hasLeft: true, hasTop: false, hasRight: false, hasBottom: true, hasCenter: false),
+    const Card(id: '006_path_02', type: CardType.path, hasLeft: false, hasTop: false, hasRight: true, hasBottom: true, hasCenter: false),
     const Card(id: '006_path_03', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
-    const Card(id: '006_path_04', type: CardType.path, hasTop: true, hasRight: true, hasBottom: false, hasLeft: false, hasCenter: false), // 상, 우 막음
-    const Card(id: '006_path_05', type: CardType.path, hasTop: true, hasBottom: true, hasLeft: false, hasRight: false, hasCenter: true),
-    const Card(id: '006_path_06', type: CardType.path, hasLeft: true, hasTop: true, hasBottom: true, hasRight: false, hasCenter: true),
-    const Card(id: '006_path_07', type: CardType.path, hasLeft: true, hasBottom: true, hasTop: false, hasRight: false, hasCenter: true),
-    const Card(id: '006_path_08', type: CardType.path, hasLeft: true, hasRight: true, hasBottom: true, hasTop: false, hasCenter: true),
+    const Card(id: '006_path_04', type: CardType.path, hasLeft: false, hasTop: true, hasRight: true, hasBottom: false, hasCenter: true),
+    const Card(id: '006_path_05', type: CardType.path, hasLeft: false, hasTop: true, hasRight: false, hasBottom: true, hasCenter: true),
+    const Card(id: '006_path_06', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: true, hasCenter: true),
+    const Card(id: '006_path_07', type: CardType.path, hasLeft: true, hasTop: false, hasRight: false, hasBottom: true, hasCenter: false),
+    const Card(id: '006_path_08', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: true, hasCenter: true),
     const Card(id: '006_path_09', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
-
     const Card(id: '007_path_01', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
-    const Card(id: '007_path_02', type: CardType.path, hasTop: true, hasLeft: false, hasRight: false, hasBottom: false, hasCenter: false), // 상 막음
-    const Card(id: '007_path_03', type: CardType.path, hasLeft: true, hasRight: true, hasTop: false, hasBottom: false, hasCenter: true), // 막히지 않음!
-    const Card(id: '007_path_04', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: false), // 사방 막음
-    const Card(id: '007_path_05', type: CardType.path, hasTop: true, hasBottom: true, hasLeft: false, hasRight: false, hasCenter: false), // 상, 하 막음
-    const Card(id: '007_path_06', type: CardType.path, hasLeft: true, hasRight: true, hasBottom: true, hasTop: false, hasCenter: true), // 막히지 않음!
-    const Card(id: '007_path_07', type: CardType.path, hasLeft: true, hasRight: true, hasBottom: true, hasTop: false, hasCenter: false), // 좌, 우, 하 막음
+    const Card(id: '007_path_02', type: CardType.path, hasLeft: false, hasTop: true, hasRight: false, hasBottom: false, hasCenter: false),
+    const Card(id: '007_path_03', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: false, hasCenter: true),
+    const Card(id: '007_path_04', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: false),
+    const Card(id: '007_path_05', type: CardType.path, hasLeft: false, hasTop: true, hasRight: false, hasBottom: true, hasCenter: false),
+    const Card(id: '007_path_06', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: true, hasCenter: true),
+    const Card(id: '007_path_07', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: true, hasCenter: false),
   ];
 
   // === 행동 카드 11장 정의 ===
