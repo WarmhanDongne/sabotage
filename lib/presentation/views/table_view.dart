@@ -114,14 +114,15 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                     if (node.y < minY) minY = node.y;
                     if (node.y > maxY) maxY = node.y;
                   }
-                for (int x = minX - 1; x <= maxX + 1; x++) {
-                  for (int y = minY - 1; y <= maxY + 1; y++) {
-                    if (goalCards.any((g) => g.x == x && g.y == y)) continue;
-                    if (Validator.canPlaceCard(board, card, x, y)) {
-                      validCoords!.add('$x,$y');
+                  final fullBoard = [...board, ...goalCards];
+                  for (int x = minX - 1; x <= maxX + 1; x++) {
+                    for (int y = minY - 1; y <= maxY + 1; y++) {
+                      if (goalCards.any((g) => g.x == x && g.y == y)) continue;
+                      if (Validator.canPlaceCard(fullBoard, card, x, y)) {
+                        validCoords!.add('$x,$y');
+                      }
                     }
                   }
-                }
               }
             } else if (card.type == game_card.CardType.action) {
                 if (card.actionType == game_card.ActionType.map) {
@@ -299,10 +300,9 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
             Container(
               width: 24,
               height: 36,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
-                image: const DecorationImage(
-                  image: AssetImage('assets/board_info/012_black/012_black_01.png'), // 블랙 에셋
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/board_info/006_card_back_side/012_black_01.png'), // 블랙 에셋
                   fit: BoxFit.cover,
                 ),
               ),

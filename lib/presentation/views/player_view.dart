@@ -128,7 +128,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                       if (me.isPickaxeBroken || me.isLanternBroken || me.isCartBroken)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          margin: const EdgeInsets.only(top: 8),
+                          margin: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.red.withOpacity(0.8),
                             borderRadius: BorderRadius.circular(12),
@@ -603,6 +603,23 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
         }
       }
 
+      if (card != null && card.type == game_card.CardType.action) {
+        bool isTargetCard = card.actionType == game_card.ActionType.breakPickaxe ||
+                            card.actionType == game_card.ActionType.breakLantern ||
+                            card.actionType == game_card.ActionType.breakCart ||
+                            card.actionType == game_card.ActionType.fixPickaxe ||
+                            card.actionType == game_card.ActionType.fixLantern ||
+                            card.actionType == game_card.ActionType.fixCart ||
+                            card.actionType == game_card.ActionType.fixCartOrLantern ||
+                            card.actionType == game_card.ActionType.fixCartOrPickaxe ||
+                            card.actionType == game_card.ActionType.fixLanternOrPickaxe;
+        if (isTargetCard) {
+          _showActionTargetDialog(context, state, me.id, realCardId, _isRotated);
+          setState(() => _isPending = false);
+          return;
+        }
+      }
+
       await repo.setPendingAction(widget.roomId, widget.playerId, realCardId, isRotated: _isRotated);
       
       if (mounted) {
@@ -614,6 +631,75 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
       setState(() => _isPending = false);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('동작 실패: $e')));
     }
+  }
+
+  void _showActionTargetDialog(BuildContext context, GameState state, String currentPlayerId, String cardId, bool isRotated) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final players = state.players;
+        return AlertDialog(
+          title: const Text('대상 선택', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.grey[900],
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: players.length,
+              itemBuilder: (context, idx) {
+                final player = players[idx];
+                
+                bool isSelf = player.id == currentPlayerId;
+                
+                final actionCard = CardDatabase.getCardById(cardId);
+                bool isBreakCard = actionCard != null && (
+                  actionCard.actionType == game_card.ActionType.breakPickaxe ||
+                  actionCard.actionType == game_card.ActionType.breakLantern ||
+                  actionCard.actionType == game_card.ActionType.breakCart
+                );
+                
+                if (isSelf && isBreakCard) {
+                  return const SizedBox.shrink(); // 자기 자신에게는 고장 카드 사용 불가
+                }
+                
+                return ListTile(
+                  title: Text(player.id, style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    '곡괭이:${player.isPickaxeBroken?'❌':'✅'} 수레:${player.isCartBroken?'❌':'✅'} 랜턴:${player.isLanternBroken?'❌':'✅'}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _isPending = true;
+                    });
+                    context.read<GameRepository>().playActionCard(
+                          widget.roomId,
+                          currentPlayerId,
+                          cardId,
+                          targetPlayerId: player.id,
+                        ).then((_) {
+                          if (mounted) {
+                            setState(() {
+                              _isPending = false;
+                              _selectedCardIndex = null;
+                              _csm = const ControllerStateMachine();
+                            });
+                          }
+                        }).catchError((e) {
+                          if (mounted) {
+                            setState(() => _isPending = false);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('동작 실패: $e')));
+                          }
+                        });
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _cancelAction() async {

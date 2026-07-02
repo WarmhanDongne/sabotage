@@ -175,7 +175,8 @@ class GameRepository {
       // 회전 상태 적용
       final card = baseCard.copyWith(isRotated: isRotated);
 
-      if (!Validator.canPlaceCard(state.board, card, targetX, targetY)) {
+      final fullBoard = [...state.board, ...state.goalCards];
+      if (!Validator.canPlaceCard(fullBoard, card, targetX, targetY)) {
         throw Exception("Invalid card placement");
       }
 

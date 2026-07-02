@@ -26,19 +26,19 @@ class Validator {
     final rightNode = _getNodeAt(board, targetX + 1, targetY);
 
     if (topNode != null) {
-      if (topNode.card.currentBottom != newCard.currentTop) return false;
+      if (_hasEdge(topNode, 'bottom') != newCard.currentTop) return false;
       hasAdjacent = true;
     }
     if (bottomNode != null) {
-      if (bottomNode.card.currentTop != newCard.currentBottom) return false;
+      if (_hasEdge(bottomNode, 'top') != newCard.currentBottom) return false;
       hasAdjacent = true;
     }
     if (leftNode != null) {
-      if (leftNode.card.currentRight != newCard.currentLeft) return false;
+      if (_hasEdge(leftNode, 'right') != newCard.currentLeft) return false;
       hasAdjacent = true;
     }
     if (rightNode != null) {
-      if (rightNode.card.currentLeft != newCard.currentRight) return false;
+      if (_hasEdge(rightNode, 'left') != newCard.currentRight) return false;
       hasAdjacent = true;
     }
 
@@ -49,7 +49,7 @@ class Validator {
     // (시작점에서 뻗어나간 굴과 이어져야만 카드를 놓을 수 있음)
     // 가상의 보드를 만들어서 테스트
     List<GridNode> testBoard = List.from(board)..add(GridNode(x: targetX, y: targetY, card: newCard));
-    return isConnectedToStart(testBoard, targetX, targetY, requireTunnelPath: true);
+    return isConnectedToStart(testBoard, targetX, targetY);
   }
 
   static GridNode? _getNodeAt(List<GridNode> board, int x, int y) {
