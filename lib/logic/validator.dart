@@ -35,6 +35,8 @@ class Validator {
     }
 
     // 2. 인접한 카드와 연결 상태(문)가 일치하는지 엄격히 확인
+    //    비공개 Goal 카드 인접 시: Goal 방향으로 반드시 통로가 열려있어야 함.
+    //    (벽이 Goal을 향하면 배치 불가)
     bool hasAdjacent = false;
 
     final topNode = _getNodeAt(board, targetX, targetY - 1);
@@ -44,6 +46,10 @@ class Validator {
 
     if (topNode != null) {
       if (topNode.card.type == CardType.goal && !topNode.isRevealed) {
+        // 비공개 Goal: 새 카드가 Goal 방향(위쪽)으로 통로가 열려있어야 함
+        if (!newCard.currentTop) {
+          return '위쪽 도착지점 카드를 향해 벽이 있습니다.';
+        }
         hasAdjacent = true;
       } else if (_hasEdge(topNode, 'bottom') != newCard.currentTop) {
         return '위쪽 카드와 벽/통로가 충돌합니다.';
@@ -53,6 +59,9 @@ class Validator {
     }
     if (bottomNode != null) {
       if (bottomNode.card.type == CardType.goal && !bottomNode.isRevealed) {
+        if (!newCard.currentBottom) {
+          return '아래쪽 도착지점 카드를 향해 벽이 있습니다.';
+        }
         hasAdjacent = true;
       } else if (_hasEdge(bottomNode, 'top') != newCard.currentBottom) {
         return '아래쪽 카드와 벽/통로가 충돌합니다.';
@@ -62,6 +71,9 @@ class Validator {
     }
     if (leftNode != null) {
       if (leftNode.card.type == CardType.goal && !leftNode.isRevealed) {
+        if (!newCard.currentLeft) {
+          return '왼쪽 도착지점 카드를 향해 벽이 있습니다.';
+        }
         hasAdjacent = true;
       } else if (_hasEdge(leftNode, 'right') != newCard.currentLeft) {
         return '왼쪽 카드와 벽/통로가 충돌합니다.';
@@ -71,6 +83,9 @@ class Validator {
     }
     if (rightNode != null) {
       if (rightNode.card.type == CardType.goal && !rightNode.isRevealed) {
+        if (!newCard.currentRight) {
+          return '오른쪽 도착지점 카드를 향해 벽이 있습니다.';
+        }
         hasAdjacent = true;
       } else if (_hasEdge(rightNode, 'left') != newCard.currentRight) {
         return '오른쪽 카드와 벽/통로가 충돌합니다.';
@@ -145,22 +160,31 @@ class Validator {
         continue;
       }
 
+      // 현재 노드가 비공개 Goal인지 확인 (비공개 Goal은 모든 방향으로 탐색 가능)
+      final bool isUnrevealedGoal = current.card.type == CardType.goal && 
+          board.any((n) => n.x == current.x && n.y == current.y && !n.isRevealed);
+
       // 인접 노드 탐색
+      // 비공개 Goal 카드는 모든 방향이 열린 것으로 취급
       final neighbors = [
-        if (current.card.currentTop) _getNodeAt(board, current.x, current.y - 1),
-        if (current.card.currentBottom) _getNodeAt(board, current.x, current.y + 1),
-        if (current.card.currentLeft) _getNodeAt(board, current.x - 1, current.y),
-        if (current.card.currentRight) _getNodeAt(board, current.x + 1, current.y),
+        if (isUnrevealedGoal || current.card.currentTop) _getNodeAt(board, current.x, current.y - 1),
+        if (isUnrevealedGoal || current.card.currentBottom) _getNodeAt(board, current.x, current.y + 1),
+        if (isUnrevealedGoal || current.card.currentLeft) _getNodeAt(board, current.x - 1, current.y),
+        if (isUnrevealedGoal || current.card.currentRight) _getNodeAt(board, current.x + 1, current.y),
       ];
 
       for (var neighbor in neighbors) {
         if (neighbor != null && !visited.contains('${neighbor.x},${neighbor.y}')) {
-          // 상대방 굴도 내 쪽으로 열려있어야 함 (2단계에서 검증하지만 경로 탐색시 한번 더 확인)
+          // 상대방 굴도 내 쪽으로 열려있어야 함
+          // 비공개 Goal 카드는 모든 방향이 열린 것으로 간주
           bool canMove = false;
-          if (neighbor.x == current.x && neighbor.y == current.y - 1 && neighbor.card.currentBottom) canMove = true;
-          if (neighbor.x == current.x && neighbor.y == current.y + 1 && neighbor.card.currentTop) canMove = true;
-          if (neighbor.x == current.x - 1 && neighbor.y == current.y && neighbor.card.currentRight) canMove = true;
-          if (neighbor.x == current.x + 1 && neighbor.y == current.y && neighbor.card.currentLeft) canMove = true;
+          final bool isNeighborUnrevealedGoal = neighbor.card.type == CardType.goal &&
+              board.any((n) => n.x == neighbor.x && n.y == neighbor.y && !n.isRevealed);
+
+          if (neighbor.x == current.x && neighbor.y == current.y - 1 && (isNeighborUnrevealedGoal || neighbor.card.currentBottom)) canMove = true;
+          if (neighbor.x == current.x && neighbor.y == current.y + 1 && (isNeighborUnrevealedGoal || neighbor.card.currentTop)) canMove = true;
+          if (neighbor.x == current.x - 1 && neighbor.y == current.y && (isNeighborUnrevealedGoal || neighbor.card.currentRight)) canMove = true;
+          if (neighbor.x == current.x + 1 && neighbor.y == current.y && (isNeighborUnrevealedGoal || neighbor.card.currentLeft)) canMove = true;
 
           if (canMove) {
             visited.add('${neighbor.x},${neighbor.y}');
@@ -173,3 +197,4 @@ class Validator {
     return false;
   }
 }
+
