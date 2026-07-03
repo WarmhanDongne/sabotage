@@ -99,7 +99,8 @@ class Validator {
 
     // 3. 놓으려는 위치가 시작점(Start Card)으로부터 연결된 굴을 통해 도달 가능한지 BFS로 확인
     List<GridNode> testBoard = List.from(board)..add(GridNode(x: targetX, y: targetY, card: newCard));
-    if (!isConnectedToStart(testBoard, targetX, targetY, requireTunnelPath: false)) {
+    // 막힌 길(hasCenter: false) 너머로는 새 카드를 이어붙일 수 없도록 엄격하게 검증 (옵션 A 통일)
+    if (!isConnectedToStart(testBoard, targetX, targetY, requireTunnelPath: true)) {
       return '시작점과 연결된 통로가 없습니다.';
     }
 
@@ -154,8 +155,7 @@ class Validator {
         return true;
       }
 
-      // 승리 조건 검사 시에만: 막힌 카드(hasCenter: false)는 통과 불가
-      // 배치 검증 시에는: 막힌 카드도 네트워크의 일부로 통과 가능
+      // 옵션 A 룰 통일: 배치 검증과 승리 조건 모두 막힌 카드(hasCenter: false) 통과 불가
       if (requireTunnelPath && !current.card.hasCenter && current.card.type != CardType.start) {
         continue;
       }
