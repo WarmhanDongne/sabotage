@@ -99,7 +99,7 @@ class Validator {
 
     // 3. 놓으려는 위치가 시작점(Start Card)으로부터 연결된 굴을 통해 도달 가능한지 BFS로 확인
     List<GridNode> testBoard = List.from(board)..add(GridNode(x: targetX, y: targetY, card: newCard));
-    if (!isConnectedToStart(testBoard, targetX, targetY, requireTunnelPath: true)) {
+    if (!isConnectedToStart(testBoard, targetX, targetY, requireTunnelPath: false)) {
       return '시작점과 연결된 통로가 없습니다.';
     }
 
