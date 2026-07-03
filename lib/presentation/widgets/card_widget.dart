@@ -139,7 +139,7 @@ class _CardWidgetState extends State<CardWidget> with SingleTickerProviderStateM
           angle: widget.card?.isRotated == true ? 3.1415926535897932 : 0.0,
           child: Image.asset(
             path,
-            fit: BoxFit.cover,
+            fit: BoxFit.fill,
             errorBuilder: (context, error, stackTrace) {
               return Container(
                 color: Colors.brown[700],

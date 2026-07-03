@@ -113,10 +113,10 @@ class BoardGridWidget extends StatelessWidget {
                 // 흰색 카드 자리 (카드가 없을 때 표시되는 빈 슬롯)
                 decoration: BoxDecoration(
                   color: node == null ? Colors.white.withOpacity(0.1) : Colors.transparent,
-                  border: Border.all(
+                  border: node == null ? Border.all(
                     color: Colors.white.withOpacity(0.2), 
                     width: 1,
-                  ),
+                  ) : null,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Stack(

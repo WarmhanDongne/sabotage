@@ -101,20 +101,20 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
             return CardImageMapper.getImagePathById(id);
           }).toList();
 
-          return AbsorbPointer(
-            absorbing: _isPending || !isMyTurn,
-            child: Stack(
-              children: [
-                // 1. 오리지널 대리석 배경 (다크모드/비네팅/커스텀 컬러 모두 배제)
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/phone_info/basic_image.png',
-                    fit: BoxFit.cover,
-                  ),
+          return Stack(
+            children: [
+              // 1. 오리지널 대리석 배경 (다크모드/비네팅/커스텀 컬러 모두 배제)
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/phone_info/basic_image.png',
+                  fit: BoxFit.cover,
                 ),
-                
-                // 2. 메인 게임 콘텐츠 (카드 부채꼴 배치)
-                SafeArea(
+              ),
+              
+              // 2. 메인 게임 콘텐츠 (카드 부채꼴 배치)
+              AbsorbPointer(
+                absorbing: _isPending || !isMyTurn,
+                child: SafeArea(
                   child: Column(
                     children: [
                       const SizedBox(height: 20), // 상단 여백
@@ -156,8 +156,9 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
+              ),
 
-                // 3. 역할 카드 (초기 뒷면, 탭 시 팝업 및 뒤집기)
+              // 3. 역할 카드 (초기 뒷면, 탭 시 팝업 및 뒤집기)
                 if (!_identityRevealed) _buildIdentityCardTrigger(),
                 
                 if (_isPending) _buildPendingOverlay(),
@@ -199,8 +200,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                     ),
                   ),
               ],
-            ),
-          );
+            );
         }
       ),
     );
