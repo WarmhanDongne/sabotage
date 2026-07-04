@@ -370,7 +370,7 @@ class GameRepository {
           'cardId': cardId,
           'isRotated': isRotated,
           // 액션 타입 파싱 개선
-          'type': cardId.startsWith('path') || cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path') ? 'path' : (cardId.startsWith('act_') || cardId.startsWith('001_action') || cardId.startsWith('009_cave_sword') ? 'action' : 'unknown')
+          'type': cardId.startsWith('003_mixed') || cardId.startsWith('path') || cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path') ? 'path' : (cardId.startsWith('act_') || cardId.startsWith('001_action') || cardId.startsWith('009_cave_sword') ? 'action' : 'unknown')
         }
       );
       transaction.update(docRef, newState.toJson());
