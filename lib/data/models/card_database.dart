@@ -15,7 +15,7 @@ class CardDatabase {
     const Card(id: '004_path_07', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: true, hasCenter: true),
     const Card(id: '004_path_08', type: CardType.path, hasLeft: true, hasTop: false, hasRight: true, hasBottom: false, hasCenter: false),
     const Card(id: '004_path_09', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: false, hasCenter: true),
-    const Card(id: '005_path_01', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: true, hasCenter: false),
+    const Card(id: '005_path_01', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: true, hasCenter: true),
     const Card(id: '005_path_02', type: CardType.path, hasLeft: true, hasTop: true, hasRight: true, hasBottom: true, hasCenter: true),
     const Card(id: '005_path_03', type: CardType.path, hasLeft: false, hasTop: true, hasRight: true, hasBottom: false, hasCenter: true),
     const Card(id: '005_path_04', type: CardType.path, hasLeft: true, hasTop: true, hasRight: false, hasBottom: true, hasCenter: true),
