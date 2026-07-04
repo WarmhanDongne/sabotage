@@ -13,7 +13,7 @@ class CardImageMapper {
   }
 
   static String getImagePathById(String cardId) {
-    if (cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path')) {
+    if (cardId.startsWith('003_mixed') || cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path')) {
       // 모든 길 카드가 004_path 폴더 안에 병합되어 있음
       return 'assets/board_info/004_path/$cardId.png';
     } else if (cardId.startsWith('001_action')) {
