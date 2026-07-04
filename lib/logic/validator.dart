@@ -46,10 +46,7 @@ class Validator {
 
     if (topNode != null) {
       if (topNode.card.type == CardType.goal && !topNode.isRevealed) {
-        // 비공개 Goal: 새 카드가 Goal 방향(위쪽)으로 통로가 열려있어야 함
-        if (!newCard.currentTop) {
-          return '위쪽 도착지점 카드를 향해 벽이 있습니다.';
-        }
+        // 비공개 Goal: 규칙상 벽이든 통로든 상관없이 배치 가능
         hasAdjacent = true;
       } else if (_hasEdge(topNode, 'bottom') != newCard.currentTop) {
         return '위쪽 카드와 벽/통로가 충돌합니다.';
@@ -59,9 +56,7 @@ class Validator {
     }
     if (bottomNode != null) {
       if (bottomNode.card.type == CardType.goal && !bottomNode.isRevealed) {
-        if (!newCard.currentBottom) {
-          return '아래쪽 도착지점 카드를 향해 벽이 있습니다.';
-        }
+        // 비공개 Goal: 규칙상 벽이든 통로든 상관없이 배치 가능
         hasAdjacent = true;
       } else if (_hasEdge(bottomNode, 'top') != newCard.currentBottom) {
         return '아래쪽 카드와 벽/통로가 충돌합니다.';
@@ -71,9 +66,7 @@ class Validator {
     }
     if (leftNode != null) {
       if (leftNode.card.type == CardType.goal && !leftNode.isRevealed) {
-        if (!newCard.currentLeft) {
-          return '왼쪽 도착지점 카드를 향해 벽이 있습니다.';
-        }
+        // 비공개 Goal: 규칙상 벽이든 통로든 상관없이 배치 가능
         hasAdjacent = true;
       } else if (_hasEdge(leftNode, 'right') != newCard.currentLeft) {
         return '왼쪽 카드와 벽/통로가 충돌합니다.';
@@ -83,9 +76,7 @@ class Validator {
     }
     if (rightNode != null) {
       if (rightNode.card.type == CardType.goal && !rightNode.isRevealed) {
-        if (!newCard.currentRight) {
-          return '오른쪽 도착지점 카드를 향해 벽이 있습니다.';
-        }
+        // 비공개 Goal: 규칙상 벽이든 통로든 상관없이 배치 가능
         hasAdjacent = true;
       } else if (_hasEdge(rightNode, 'left') != newCard.currentRight) {
         return '오른쪽 카드와 벽/통로가 충돌합니다.';

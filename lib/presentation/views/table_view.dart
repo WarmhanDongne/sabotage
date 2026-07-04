@@ -243,7 +243,6 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                               }
                             },
                           ),
-                        ],
                       ),
                     ),
                   );

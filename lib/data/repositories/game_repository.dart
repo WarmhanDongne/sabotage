@@ -91,7 +91,36 @@ class GameRepository {
       bool isGold = isGoldList[i];
       String id = getGoalId(isGold, rockCount);
       if (!isGold) rockCount++;
-      goalNodes.add(GridNode(x: 9, y: yPos, card: game_card.Card(id: id, type: game_card.CardType.goal, isGold: isGold), isRevealed: false));
+      bool hasTop = true;
+      bool hasRight = false;
+      bool hasBottom = false;
+      bool hasLeft = false;
+      
+      if (id == '008_cave_action_03') { // 금 카드
+        hasRight = true;
+        hasBottom = true;
+        hasLeft = true;
+      } else if (id == '008_cave_action_02') { // 돌 카드 1
+        hasLeft = true;
+      } else if (id == '008_cave_action_04') { // 돌 카드 2
+        hasRight = true;
+      }
+
+      goalNodes.add(GridNode(
+        x: 9, 
+        y: yPos, 
+        card: game_card.Card(
+          id: id, 
+          type: game_card.CardType.goal, 
+          isGold: isGold,
+          hasTop: hasTop,
+          hasRight: hasRight,
+          hasBottom: hasBottom,
+          hasLeft: hasLeft,
+          hasCenter: true,
+        ), 
+        isRevealed: false
+      ));
     }
 
     // 4. 시작 카드: 원래 dummy 설정값 (1, 3)
