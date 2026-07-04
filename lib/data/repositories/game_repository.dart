@@ -70,8 +70,7 @@ class GameRepository {
     roles.shuffle(random);
 
     // 2. 덱 생성
-    List<game_card.Card> deck = List.from(CardDatabase.allDeckCards);
-    deck.shuffle(random);
+    List<game_card.Card> deck = CardDatabase.generateInitialDeck();
 
     // 3. 목적지 카드 3장 생성 (랜덤 배치)
     List<GridNode> goalNodes = [];
@@ -129,8 +128,13 @@ class GameRepository {
       card: CardDatabase.startCard,
     );
 
-    // 5. 플레이어 손패 나누기 (인원수에 따라 다름: 3~5명=6장, 6~7명=5장)
-    int handSize = playerIds.length <= 5 ? 6 : 5;
+    // 5. 플레이어 손패 나누기 (인원수에 따라 다름: 3~5명=6장, 6~7명=5장, 8~10명=4장)
+    int handSize = 6;
+    if (playerIds.length >= 8) {
+      handSize = 4;
+    } else if (playerIds.length >= 6) {
+      handSize = 5;
+    }
     List<Player> players = [];
     for (int i = 0; i < playerIds.length; i++) {
       List<String> hand = [];
