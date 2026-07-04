@@ -161,25 +161,26 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                     minScale: 0.1,
                     maxScale: 4.0,
                     boundaryMargin: const EdgeInsets.all(3000), // 화면 밖으로 충분히 스와이프 가능하도록 여백 부여
-                    child: Center(
-                      child: Stack(
-                        children: [
-                          // 배경 이미지
-                          Positioned.fill(
-                            child: Image.asset(
-                              'assets/phone_info/basic_image.png',
-                              repeat: ImageRepeat.repeat,
-                              fit: BoxFit.none,
-                            ),
-                          ),
-                          
-                          // 보드 격자
-                          BoardGridWidget(
-                            board: board,
-                            goalCards: goalCards,
-                            cellWidth: cellWidth,
-                            cellHeight: cellHeight,
-                            validOverlayCoords: validCoords,
+                    constrained: false, // 자식 크기 무한 확장 허용
+                    child: Container(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
+                        minHeight: constraints.maxHeight,
+                      ),
+                      decoration: const BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage('assets/phone_info/basic_image.png'),
+                          repeat: ImageRepeat.repeat,
+                          fit: BoxFit.none,
+                        ),
+                      ),
+                      child: Center(
+                        child: BoardGridWidget(
+                          board: board,
+                          goalCards: goalCards,
+                          cellWidth: cellWidth,
+                          cellHeight: cellHeight,
+                          validOverlayCoords: validCoords,
                             onGridTap: (x, y) async {
                               // 사용자 피드백 (에러 팝업)을 위해 명시적으로 Validator.getPlacementError 호출
                               if (state.pendingAction != null && state.pendingAction!['type'] == 'path') {
