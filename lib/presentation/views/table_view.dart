@@ -255,6 +255,13 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                   child: _buildTopHUD(remainingCards),
                 ),
               ),
+              // 3.5 플레이어 현황판 (좌측 상단 고정)
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: _buildPlayerStatusBoard(state.players),
+                ),
+              ),
               // 4. 행동 카드 대상 선택 UI (장비 파괴/수리)
               if (state.pendingAction != null && state.pendingAction!['type'] == 'action' && 
                   _isBreakOrFixCard(state.pendingAction!['cardId']))
@@ -356,6 +363,56 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
     );
   }
 
+  Widget _buildPlayerStatusBoard(List<Player> players) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, left: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '플레이어 현황',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          ...players.map((p) {
+            List<Widget> statuses = [];
+            if (p.isPickaxeBroken) statuses.add(const Text('⛏️❌ '));
+            if (p.isLanternBroken) statuses.add(const Text('🏮❌ '));
+            if (p.isCartBroken) statuses.add(const Text('🛒❌ '));
+            
+            if (statuses.isEmpty) {
+              statuses.add(const Text('✅ '));
+            }
+            
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 80, // 고정 너비로 닉네임 정렬
+                    child: Text(
+                      p.id,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  ...statuses,
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPlayerTargetList(BuildContext context, GameState state) {
     final pendingCardId = state.pendingAction!['cardId'];
     final pendingPlayerId = state.pendingAction!['playerId'];
@@ -391,7 +448,7 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
           Expanded(
             child: ListView.builder(
               itemCount: targetPlayers.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (itemCtx, index) {
                 final p = targetPlayers[index];
                 return ListTile(
                   title: Text(p.id, style: const TextStyle(color: Colors.white)),
@@ -400,19 +457,62 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                     style: const TextStyle(color: Colors.white70, fontSize: 10),
                   ),
                   onTap: () async {
-                    try {
-                      await context.read<GameRepository>().playActionCard(
-                        widget.roomId,
-                        state.pendingAction!['playerId'],
-                        state.pendingAction!['cardId'],
-                        targetPlayerId: p.id,
-                      );
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('동작 실패: $e')),
+                    final actionCard = CardDatabase.getCardById(state.pendingAction!['cardId']);
+                    if (actionCard == null) return;
+
+                    bool canFixPickaxe = (actionCard.actionType == game_card.ActionType.fixPickaxe || actionCard.actionType == game_card.ActionType.fixCartOrPickaxe || actionCard.actionType == game_card.ActionType.fixLanternOrPickaxe) && p.isPickaxeBroken;
+                    bool canFixLantern = (actionCard.actionType == game_card.ActionType.fixLantern || actionCard.actionType == game_card.ActionType.fixCartOrLantern || actionCard.actionType == game_card.ActionType.fixLanternOrPickaxe) && p.isLanternBroken;
+                    bool canFixCart = (actionCard.actionType == game_card.ActionType.fixCart || actionCard.actionType == game_card.ActionType.fixCartOrLantern || actionCard.actionType == game_card.ActionType.fixCartOrPickaxe) && p.isCartBroken;
+
+                    int fixableCount = (canFixPickaxe ? 1 : 0) + (canFixLantern ? 1 : 0) + (canFixCart ? 1 : 0);
+
+                    Future<void> executeAction(String? repairTarget) async {
+                      try {
+                        await context.read<GameRepository>().playActionCard(
+                          widget.roomId,
+                          state.pendingAction!['playerId'],
+                          state.pendingAction!['cardId'],
+                          targetPlayerId: p.id,
+                          repairTarget: repairTarget,
                         );
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('동작 실패: $e')),
+                          );
+                        }
                       }
+                    }
+
+                    if (fixableCount > 1) {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) {
+                          return AlertDialog(
+                            title: const Text('수리할 도구 선택', style: TextStyle(color: Colors.white)),
+                            backgroundColor: Colors.grey[900],
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (canFixPickaxe) ListTile(
+                                  title: const Text('곡괭이 수리', style: TextStyle(color: Colors.white)),
+                                  onTap: () { Navigator.pop(ctx); executeAction('pickaxe'); },
+                                ),
+                                if (canFixLantern) ListTile(
+                                  title: const Text('랜턴 수리', style: TextStyle(color: Colors.white)),
+                                  onTap: () { Navigator.pop(ctx); executeAction('lantern'); },
+                                ),
+                                if (canFixCart) ListTile(
+                                  title: const Text('수레 수리', style: TextStyle(color: Colors.white)),
+                                  onTap: () { Navigator.pop(ctx); executeAction('cart'); },
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      );
+                    } else {
+                      await executeAction(null);
                     }
                   },
                 );

@@ -261,7 +261,7 @@ class GameRepository {
   }
 
   // 거래 트랜잭션: 행동 카드 사용
-  Future<void> playActionCard(String roomId, String playerId, String cardId, {String? targetPlayerId, int? targetX, int? targetY}) async {
+  Future<void> playActionCard(String roomId, String playerId, String cardId, {String? targetPlayerId, int? targetX, int? targetY, String? repairTarget}) async {
     final docRef = _firestore.collection('rooms').doc(roomId);
 
     await _firestore.runTransaction((transaction) async {
@@ -304,18 +304,31 @@ class GameRepository {
           final tp = newPlayers[targetIdx];
           
           bool fixed = false;
-          if ((card.actionType == game_card.ActionType.fixPickaxe || card.actionType == game_card.ActionType.fixCartOrPickaxe || card.actionType == game_card.ActionType.fixLanternOrPickaxe) && tp.isPickaxeBroken && !fixed) {
+          bool canFixPickaxe = (card.actionType == game_card.ActionType.fixPickaxe || card.actionType == game_card.ActionType.fixCartOrPickaxe || card.actionType == game_card.ActionType.fixLanternOrPickaxe) && tp.isPickaxeBroken;
+          bool canFixLantern = (card.actionType == game_card.ActionType.fixLantern || card.actionType == game_card.ActionType.fixCartOrLantern || card.actionType == game_card.ActionType.fixLanternOrPickaxe) && tp.isLanternBroken;
+          bool canFixCart = (card.actionType == game_card.ActionType.fixCart || card.actionType == game_card.ActionType.fixCartOrLantern || card.actionType == game_card.ActionType.fixCartOrPickaxe) && tp.isCartBroken;
+
+          if (repairTarget == 'pickaxe' && canFixPickaxe) {
             newPlayers[targetIdx] = tp.copyWith(isPickaxeBroken: false);
             fixed = true;
-          }
-          if ((card.actionType == game_card.ActionType.fixLantern || card.actionType == game_card.ActionType.fixCartOrLantern || card.actionType == game_card.ActionType.fixLanternOrPickaxe) && tp.isLanternBroken && !fixed) {
+          } else if (repairTarget == 'lantern' && canFixLantern) {
             newPlayers[targetIdx] = tp.copyWith(isLanternBroken: false);
             fixed = true;
-          }
-          if ((card.actionType == game_card.ActionType.fixCart || card.actionType == game_card.ActionType.fixCartOrLantern || card.actionType == game_card.ActionType.fixCartOrPickaxe) && tp.isCartBroken && !fixed) {
+          } else if (repairTarget == 'cart' && canFixCart) {
             newPlayers[targetIdx] = tp.copyWith(isCartBroken: false);
             fixed = true;
+          } else if (repairTarget == null) {
+            int fixableCount = (canFixPickaxe ? 1 : 0) + (canFixLantern ? 1 : 0) + (canFixCart ? 1 : 0);
+            if (fixableCount > 1) {
+              throw Exception('Repair target required because multiple tools can be fixed');
+            } else if (fixableCount == 1) {
+              if (canFixPickaxe) newPlayers[targetIdx] = tp.copyWith(isPickaxeBroken: false);
+              if (canFixLantern) newPlayers[targetIdx] = tp.copyWith(isLanternBroken: false);
+              if (canFixCart) newPlayers[targetIdx] = tp.copyWith(isCartBroken: false);
+              fixed = true;
+            }
           }
+
           if (!fixed) {
             // 아무것도 고치지 않았더라도 (어차피 고장난 게 없는데 사용한 경우), 카드는 소모됨
           }

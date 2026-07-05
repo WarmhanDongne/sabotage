@@ -27,7 +27,6 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   ControllerStateMachine _csm = const ControllerStateMachine();
   bool _isPending = false;
   int? _selectedCardIndex;
-  bool _isRotated = false;
   int? _seenMapResultTimestamp;
 
   // Identity Card 애니메이션
@@ -122,7 +121,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                       Container(
                         padding: const EdgeInsets.all(8),
                         color: isMyTurn ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5),
-                        child: Text(isMyTurn ? "내 턴입니다!" : "상대방 턴을 기다려주세요", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                        child: Text(isMyTurn ? "내 턴입니다!" : "${state.currentTurnPlayerId}님의 턴입니다. 기다려주세요!", style: const TextStyle(fontSize: 18, color: Colors.white)),
                       ),
                       // 내 장비 상태 표시
                       if (me.isPickaxeBroken || me.isLanternBroken || me.isCartBroken)
@@ -262,10 +261,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                 alignment: Alignment.bottomCenter, // 하단을 기준으로 회전
                 child: GestureDetector(
                   onTap: () => _onCardTapped(index),
-                  child: Transform.rotate(
-                    angle: (isSelected && _isRotated) ? math.pi : 0.0,
-                    alignment: Alignment.center,
-                    child: AnimatedContainer(
+                  child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOutCubic,
                     width: cardWidth,
@@ -288,7 +284,6 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  ), // Transform.rotate (inner) closing paren
                 ), // GestureDetector closing paren
               ), // Transform.rotate (outer) closing paren
             );
@@ -394,31 +389,9 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   }
 
   Widget _buildActionButtons(List<String> currentHandImages) {
-    bool isPathCard = false;
-    if (_selectedCardIndex != null && _selectedCardIndex! < currentHandImages.length) {
-      final cardId = currentHandImages[_selectedCardIndex!];
-      isPathCard = cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path');
-    }
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (isPathCard) ...[
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isRotated ? Colors.deepPurple : Colors.blueGrey,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () {
-              setState(() {
-                _isRotated = !_isRotated;
-              });
-            },
-            child: const Text('180도 회전', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 16),
-        ],
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.amber[700],
@@ -490,6 +463,9 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     final cardId = pendingAction['cardId'] as String;
     final isRotated = pendingAction['isRotated'] == true;
     final imagePath = CardImageMapper.getImagePathById(cardId);
+    
+    final baseCard = CardDatabase.getCardById(cardId);
+    final isPathCard = baseCard?.type == game_card.CardType.path;
 
     return Column(
       children: [
@@ -522,10 +498,34 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
           ),
         ),
         const SizedBox(height: 12),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[700]),
-          onPressed: _cancelAction,
-          child: const Text('사용 취소', style: TextStyle(color: Colors.white)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isPathCard) ...[
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isRotated ? Colors.deepPurple : Colors.blueGrey,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  // 실시간 스트림으로 상태를 업데이트
+                  context.read<GameRepository>().setPendingAction(
+                    widget.roomId, 
+                    widget.playerId, 
+                    cardId, 
+                    isRotated: !isRotated,
+                  );
+                },
+                child: const Text('180도 회전', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 16),
+            ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[700]),
+              onPressed: _cancelAction,
+              child: const Text('사용 취소', style: TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
       ],
     );
@@ -547,11 +547,9 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     setState(() {
       if (_selectedCardIndex == index) {
         _selectedCardIndex = null;
-        _isRotated = false;
         _csm = _csm.cancelSelection();
       } else {
         _selectedCardIndex = index;
-        _isRotated = false;
         _csm = _csm.selectCard('card_$index');
       }
     });
@@ -614,13 +612,13 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                             card.actionType == game_card.ActionType.fixCartOrPickaxe ||
                             card.actionType == game_card.ActionType.fixLanternOrPickaxe;
         if (isTargetCard) {
-          _showActionTargetDialog(context, state, me.id, realCardId, _isRotated);
+          _showActionTargetDialog(context, state, me.id, realCardId, false);
           setState(() => _isPending = false);
           return;
         }
       }
 
-      await repo.setPendingAction(widget.roomId, widget.playerId, realCardId, isRotated: _isRotated);
+      await repo.setPendingAction(widget.roomId, widget.playerId, realCardId, isRotated: false);
       
       if (mounted) {
         setState(() {
@@ -636,7 +634,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
   void _showActionTargetDialog(BuildContext context, GameState state, String currentPlayerId, String cardId, bool isRotated) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogCtx) {
         final players = state.players;
         return AlertDialog(
           title: const Text('대상 선택', style: TextStyle(color: Colors.white)),
@@ -646,7 +644,7 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: players.length,
-              itemBuilder: (context, idx) {
+              itemBuilder: (itemCtx, idx) {
                 final player = players[idx];
                 
                 bool isSelf = player.id == currentPlayerId;
@@ -669,29 +667,72 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                     style: const TextStyle(color: Colors.white70, fontSize: 10),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _isPending = true;
-                    });
-                    context.read<GameRepository>().playActionCard(
-                          widget.roomId,
-                          currentPlayerId,
-                          cardId,
-                          targetPlayerId: player.id,
-                        ).then((_) {
-                          if (mounted) {
-                            setState(() {
-                              _isPending = false;
-                              _selectedCardIndex = null;
-                              _csm = const ControllerStateMachine();
-                            });
-                          }
-                        }).catchError((e) {
-                          if (mounted) {
-                            setState(() => _isPending = false);
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('동작 실패: $e')));
-                          }
-                        });
+                    Navigator.pop(itemCtx);
+
+                    if (actionCard == null) return;
+
+                    bool canFixPickaxe = (actionCard.actionType == game_card.ActionType.fixPickaxe || actionCard.actionType == game_card.ActionType.fixCartOrPickaxe || actionCard.actionType == game_card.ActionType.fixLanternOrPickaxe) && player.isPickaxeBroken;
+                    bool canFixLantern = (actionCard.actionType == game_card.ActionType.fixLantern || actionCard.actionType == game_card.ActionType.fixCartOrLantern || actionCard.actionType == game_card.ActionType.fixLanternOrPickaxe) && player.isLanternBroken;
+                    bool canFixCart = (actionCard.actionType == game_card.ActionType.fixCart || actionCard.actionType == game_card.ActionType.fixCartOrLantern || actionCard.actionType == game_card.ActionType.fixCartOrPickaxe) && player.isCartBroken;
+
+                    int fixableCount = (canFixPickaxe ? 1 : 0) + (canFixLantern ? 1 : 0) + (canFixCart ? 1 : 0);
+
+                    void executeAction(String? repairTarget) {
+                      setState(() {
+                        _isPending = true;
+                      });
+                      context.read<GameRepository>().playActionCard(
+                            widget.roomId,
+                            currentPlayerId,
+                            cardId,
+                            targetPlayerId: player.id,
+                            repairTarget: repairTarget,
+                          ).then((_) {
+                            if (mounted) {
+                              setState(() {
+                                _isPending = false;
+                                _selectedCardIndex = null;
+                                _csm = const ControllerStateMachine();
+                              });
+                            }
+                          }).catchError((e) {
+                            if (mounted) {
+                              setState(() => _isPending = false);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('동작 실패: $e')));
+                            }
+                          });
+                    }
+
+                    if (fixableCount > 1) {
+                      showDialog(
+                        context: context,
+                        builder: (innerCtx) {
+                          return AlertDialog(
+                            title: const Text('수리할 도구 선택', style: TextStyle(color: Colors.white)),
+                            backgroundColor: Colors.grey[900],
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (canFixPickaxe) ListTile(
+                                  title: const Text('곡괭이 수리', style: TextStyle(color: Colors.white)),
+                                  onTap: () { Navigator.pop(innerCtx); executeAction('pickaxe'); },
+                                ),
+                                if (canFixLantern) ListTile(
+                                  title: const Text('랜턴 수리', style: TextStyle(color: Colors.white)),
+                                  onTap: () { Navigator.pop(innerCtx); executeAction('lantern'); },
+                                ),
+                                if (canFixCart) ListTile(
+                                  title: const Text('수레 수리', style: TextStyle(color: Colors.white)),
+                                  onTap: () { Navigator.pop(innerCtx); executeAction('cart'); },
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      );
+                    } else {
+                      executeAction(null);
+                    }
                   },
                 );
               },
