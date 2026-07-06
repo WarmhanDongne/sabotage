@@ -406,6 +406,14 @@ class GameRepository {
       final playerIndex = state.players.indexWhere((p) => p.id == playerId);
       if (!state.players[playerIndex].handCardIds.contains(cardId)) throw Exception("Card not in hand");
 
+      // preserve targetX, targetY if pendingAction already exists and cardId is same
+      int? targetX;
+      int? targetY;
+      if (state.pendingAction != null && state.pendingAction!['cardId'] == cardId) {
+        targetX = state.pendingAction!['targetX'];
+        targetY = state.pendingAction!['targetY'];
+      }
+
       final newState = GameState(
         roomId: state.roomId, players: state.players, currentTurnPlayerId: state.currentTurnPlayerId,
         board: state.board, deck: state.deck, discardPile: state.discardPile, goalCards: state.goalCards,
@@ -415,9 +423,60 @@ class GameRepository {
           'playerId': playerId,
           'cardId': cardId,
           'isRotated': isRotated,
+          if (targetX != null) 'targetX': targetX,
+          if (targetY != null) 'targetY': targetY,
           // 액션 타입 파싱 개선
           'type': cardId.startsWith('003_mixed') || cardId.startsWith('path') || cardId.startsWith('004_path') || cardId.startsWith('005_path') || cardId.startsWith('006_path') || cardId.startsWith('007_path') ? 'path' : (cardId.startsWith('act_') || cardId.startsWith('001_action') || cardId.startsWith('009_cave_sword') ? 'action' : 'unknown')
-        }
+        },
+        lastMapResult: state.lastMapResult,
+      );
+      transaction.update(docRef, newState.toJson());
+    });
+  }
+
+  Future<void> setPendingActionTarget(String roomId, String playerId, int targetX, int targetY) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) return;
+      final state = GameState.fromJson(snapshot.data()!);
+      if (state.pendingAction == null || state.pendingAction!['playerId'] != playerId) return;
+      
+      final currentPending = Map<String, dynamic>.from(state.pendingAction!);
+      currentPending['targetX'] = targetX;
+      currentPending['targetY'] = targetY;
+
+      final newState = GameState(
+        roomId: state.roomId, players: state.players, currentTurnPlayerId: state.currentTurnPlayerId,
+        board: state.board, deck: state.deck, discardPile: state.discardPile, goalCards: state.goalCards,
+        currentRound: state.currentRound, isGameOver: state.isGameOver, goldDistribution: state.goldDistribution,
+        winner: state.winner,
+        pendingAction: currentPending,
+        lastMapResult: state.lastMapResult,
+      );
+      transaction.update(docRef, newState.toJson());
+    });
+  }
+
+  Future<void> clearPendingActionTarget(String roomId, String playerId) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) return;
+      final state = GameState.fromJson(snapshot.data()!);
+      if (state.pendingAction == null || state.pendingAction!['playerId'] != playerId) return;
+      
+      final currentPending = Map<String, dynamic>.from(state.pendingAction!);
+      currentPending.remove('targetX');
+      currentPending.remove('targetY');
+
+      final newState = GameState(
+        roomId: state.roomId, players: state.players, currentTurnPlayerId: state.currentTurnPlayerId,
+        board: state.board, deck: state.deck, discardPile: state.discardPile, goalCards: state.goalCards,
+        currentRound: state.currentRound, isGameOver: state.isGameOver, goldDistribution: state.goldDistribution,
+        winner: state.winner,
+        pendingAction: currentPending,
+        lastMapResult: state.lastMapResult,
       );
       transaction.update(docRef, newState.toJson());
     });

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/grid_node.dart';
+import '../../logic/card_image_mapper.dart';
 import 'card_widget.dart';
 
 /// 오리지널 에셋(Ipad.png) 기반 보드 격자 렌더링 위젯.
@@ -12,6 +13,10 @@ class BoardGridWidget extends StatelessWidget {
   final Set<String>? validOverlayCoords;
   final Set<String>? invalidOverlayCoords;
   final void Function(int x, int y)? onGridTap;
+  final Map<String, dynamic>? pendingAction;
+  final VoidCallback? onConfirmAction;
+  final VoidCallback? onRotateAction;
+  final VoidCallback? onCancelAction;
 
   const BoardGridWidget({
     super.key,
@@ -22,6 +27,10 @@ class BoardGridWidget extends StatelessWidget {
     this.validOverlayCoords,
     this.invalidOverlayCoords,
     this.onGridTap,
+    this.pendingAction,
+    this.onConfirmAction,
+    this.onRotateAction,
+    this.onCancelAction,
   });
 
   @override
@@ -79,6 +88,9 @@ class BoardGridWidget extends StatelessWidget {
                 minX: minX,
                 minY: minY,
               ),
+          
+          if (pendingAction != null && pendingAction!['targetX'] != null && pendingAction!['targetY'] != null)
+             _buildPreviewAndButtons(minX, minY, pendingAction!['targetX'], pendingAction!['targetY']),
         ],
       ),
     );
@@ -149,6 +161,110 @@ class BoardGridWidget extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewAndButtons(int minX, int minY, int targetX, int targetY) {
+    // 미리보기 카드 렌더링을 위해 기본 카드 정보를 가져옵니다 (필요한 경우)
+    final cardId = pendingAction!['cardId'] as String;
+    final isRotated = pendingAction!['isRotated'] == true;
+    final isPath = pendingAction!['type'] == 'path';
+    
+    // 버튼의 Y 좌표 오프셋 (카드 아래에 띄움)
+    // 카드의 우측에 띄우는 것이 나을 수 있지만 공간상 아래가 안전합니다.
+    final leftPos = (targetX - minX) * cellWidth;
+    final topPos = (targetY - minY) * cellHeight;
+
+    return Positioned(
+      left: leftPos - (cellWidth * 0.5), // 버튼 바 넓이를 위해 좌측 여백 추가
+      top: topPos, 
+      child: IgnorePointer(
+        ignoring: false, // 터치 가능하도록
+        child: SizedBox(
+          width: cellWidth * 2.0, // 주변 공간 활용
+          height: cellHeight * 1.5,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 1. 카드 미리보기 (원래 셀 위치, 중앙)
+              Positioned(
+                left: cellWidth * 0.5,
+                top: 0,
+                width: cellWidth,
+                height: cellHeight,
+                child: Opacity(
+                  opacity: 0.6, // 반투명하게 가배치 표시
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: 2 / 3,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.amber, width: 3),
+                        ),
+                        child: Transform.rotate(
+                          angle: isRotated ? 3.141592 : 0.0,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              CardImageMapper.getImagePathById(cardId),
+                              fit: BoxFit.cover,
+                              errorBuilder: (c,e,s) => const ColoredBox(color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // 2. 조작 버튼 (카드 우측)
+              Positioned(
+                left: cellWidth * 1.5 + 8, // 카드의 우측 바깥
+                top: cellHeight * 0.1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 4, spreadRadius: 1)],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildIconButton(Icons.check, Colors.green, '확정', onConfirmAction),
+                      if (isPath) ...[
+                        const SizedBox(height: 12),
+                        _buildIconButton(Icons.rotate_right, Colors.blue, '회전', onRotateAction),
+                      ],
+                      const SizedBox(height: 12),
+                      _buildIconButton(Icons.close, Colors.red, '취소', onCancelAction),
+                    ],
+                  ),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconButton(IconData icon, Color color, String label, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            backgroundColor: color,
+            radius: 18,
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

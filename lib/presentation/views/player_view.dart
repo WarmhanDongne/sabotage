@@ -467,11 +467,14 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
     final baseCard = CardDatabase.getCardById(cardId);
     final isPathCard = baseCard?.type == game_card.CardType.path;
 
+    final hasTarget = pendingAction.containsKey('targetX') && pendingAction['targetX'] != null;
+
     return Column(
       children: [
-        const Text(
-          '태블릿 화면에서 대상을 선택해주세요.',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        Text(
+          hasTarget ? '태블릿 화면에 가배치된 카드를 확인하고 확정해주세요.' : '태블릿 화면에서 대상을 선택해주세요.',
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
         // 선택된 카드 미리보기
@@ -517,6 +520,41 @@ class _PlayerViewState extends State<PlayerView> with TickerProviderStateMixin {
                   );
                 },
                 child: const Text('180도 회전', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 16),
+            ],
+            if (hasTarget) ...[
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                onPressed: () async {
+                  final x = pendingAction['targetX'] as int;
+                  final y = pendingAction['targetY'] as int;
+                  try {
+                    if (pendingAction['type'] == 'path') {
+                      await context.read<GameRepository>().playPathCard(
+                        widget.roomId,
+                        widget.playerId,
+                        cardId,
+                        x,
+                        y,
+                        isRotated: isRotated,
+                      );
+                    } else if (pendingAction['type'] == 'action') {
+                      await context.read<GameRepository>().playActionCard(
+                        widget.roomId,
+                        widget.playerId,
+                        cardId,
+                        targetX: x,
+                        targetY: y,
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('에러: $e')));
+                    }
+                  }
+                },
+                child: const Text('배치 확정', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 16),
             ],

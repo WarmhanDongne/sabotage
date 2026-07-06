@@ -207,26 +207,50 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                                 }
                               }
 
-                              if (validCoords != null && validCoords!.contains('$x,$y')) {
-                                try {
-                                  if (state.pendingAction!['type'] == 'path') {
-                                    await context.read<GameRepository>().playPathCard(
+                                if (validCoords != null && validCoords!.contains('$x,$y')) {
+                                  try {
+                                    await context.read<GameRepository>().setPendingActionTarget(
                                       widget.roomId,
                                       state.pendingAction!['playerId'],
-                                      state.pendingAction!['cardId'],
                                       x,
                                       y,
-                                      isRotated: state.pendingAction!['isRotated'] == true,
                                     );
-                                  } else if (state.pendingAction!['type'] == 'action') {
-                                    final cId = state.pendingAction!['cardId'];
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('동작 실패: $e')),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              pendingAction: state.pendingAction,
+                              onConfirmAction: () async {
+                                if (state.pendingAction == null) return;
+                                final pAction = state.pendingAction!;
+                                final x = pAction['targetX'] as int?;
+                                final y = pAction['targetY'] as int?;
+                                if (x == null || y == null) return;
+
+                                try {
+                                  if (pAction['type'] == 'path') {
+                                    await context.read<GameRepository>().playPathCard(
+                                      widget.roomId,
+                                      pAction['playerId'],
+                                      pAction['cardId'],
+                                      x,
+                                      y,
+                                      isRotated: pAction['isRotated'] == true,
+                                    );
+                                  } else if (pAction['type'] == 'action') {
+                                    final cId = pAction['cardId'];
                                     final actionCard = CardDatabase.getCardById(cId);
                                     if (actionCard != null && 
                                         (actionCard.actionType == game_card.ActionType.rockfall ||
                                          actionCard.actionType == game_card.ActionType.map)) {
                                       await context.read<GameRepository>().playActionCard(
                                         widget.roomId,
-                                        state.pendingAction!['playerId'],
+                                        pAction['playerId'],
                                         cId,
                                         targetX: x,
                                         targetY: y,
@@ -240,8 +264,26 @@ class _TableViewState extends State<TableView> with SingleTickerProviderStateMix
                                     );
                                   }
                                 }
-                              }
-                            },
+                              },
+                              onRotateAction: () async {
+                                if (state.pendingAction == null) return;
+                                final pAction = state.pendingAction!;
+                                if (pAction['type'] != 'path') return;
+                                
+                                await context.read<GameRepository>().setPendingAction(
+                                  widget.roomId,
+                                  pAction['playerId'],
+                                  pAction['cardId'],
+                                  isRotated: !(pAction['isRotated'] == true),
+                                );
+                              },
+                              onCancelAction: () async {
+                                if (state.pendingAction == null) return;
+                                await context.read<GameRepository>().clearPendingActionTarget(
+                                  widget.roomId,
+                                  state.pendingAction!['playerId'],
+                                );
+                              },
                           ),
                       ),
                     ),
